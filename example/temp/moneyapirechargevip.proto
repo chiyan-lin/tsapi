@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+// 服务注册名
+// 客户端会通过这个字段获取sname
+// 主命名空间：net.name
+// 子命名空间：ymicro (下面的服务类型对业务命名空间为保留字段)
+// 服务类型：srv/api/web/...
+// 服务名称：demo
+package net.name.money.api.rechargevip;
+
+// go的包名，引用时因为有git的项目路径作为命名空间，这里用短和清晰的名词
+option go_package = "pbrechargevip";
+option objc_class_prefix = "RechargeVip";
+
+// import "git.yy.com/name/proto-common/common.proto";
+// import "git.yy.com/name/proto-hago-money-common/moneycommon.proto";
+
+// 以下根据业务实际情况编写
+// 表示一个RechargeVip服务.
+service RechargeVip {
+  // 获取用户等级信息
+  rpc GetUserLevelInfo(GetUserLevelInfoReq) returns (GetUserLevelInfoRes) {}
+
+  // 获取各个等级档位配置
+  rpc GetLevelConfig(GetLevelConfigReq) returns (GetLevelConfigRes) {}
+
+  // 发放用户积分，活动奖励，服务端调用
+  rpc IssueScore(IssueScoreReq) returns (IssueScoreRes) {}
+
+  // 服务端自测接口
+  rpc TestInterface(TestInterfaceReq) returns (TestInterfaceRes) {}
+}
+
+enum ECode {
+  CODE_OK = 0; //操作成功
+
+  // 基本错误码
+  CODE_SERVER_ERROR = 10000; //服务器错误
+  CODE_INVALID_TOKEN = 10001; //token不正确
+}
+
+message GetUserLevelInfoReq {
+}
+
+message LevelAward {
+  int32 level = 1; //SVIP等级
+  repeated moneycom.PrizeInfo prize = 2; //奖励列表
+}
+
+message GetUserLevelInfoRes {
+  common.Result result = 1; //结果
+
+  moneycom.User user = 10; //用户信息
+  int32 level = 11; // 当前SVIP等级，从0开始
+  int32 cur_amount = 12; // 当前充值金额
+  int32 next_level_amount = 13; // 下一等级的充值金额，cur_amount/next_level_amount就是等级进度，cur_amount>=next_level_amount，说明已满级
+  int32 score = 14; // 当前可用积分
+
+  repeated LevelAward level_awards = 20; // 各等级奖励列表
+}
+
+message LevelConfig {
+  int32 level = 1; // SVIP等级
+  int32 from_amount = 2; // 当前等级的开始充值金额，包含
+  int32 to_amount = 3; // 当前等级的结束充值金额，不包含，若为0，说明到无穷
+}
+
+message GetLevelConfigReq {
+}
+
+message GetLevelConfigRes {
+  common.Result result = 1; //结果
+
+  repeated LevelConfig level_configs = 10; // 等级列表
+}
+
+message IssueScoreReq {
+  int64 uid = 1;
+  int32 score = 2;
+  string token = 3;
+}
+
+message IssueScoreRes {
+  common.Result result = 1; //结果
+}
+
+message TestInterfaceReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  string cmd = 2;
+  map<string, string> map_extend = 3;
+}
+
+message TestInterfaceRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+  map<string, string> map_extend = 3;
+  repeated string array_extend = 4;
+}

@@ -1,0 +1,203 @@
+syntax="proto3";
+
+// 黄锡元
+
+package common;
+
+option go_package="pbcom";
+option java_package="com.yy.hiyo.proto";
+option objc_class_prefix="Common";
+
+message Header {
+    string sname = 1;   // service name
+    int64  seqid = 2;   // sequence id
+    int64  code = 3;    // return code
+    string lang = 4;    // 语言代码_国家代码，如:zh_CN，en_US
+    string tid = 5;     // traceid 客户端不用填，只需要收到包的时候log出来
+    string roomid = 6;  //
+    string method = 7;  // rpc调用时使用的函数名称
+    string version = 8; // 版本信息, 客户端现在用这个字段来区分新老消息，老版本消息禁止填写
+    enum MSGTYPE{
+        MSGTYPE_UNKNOWN = 0;
+        MSGTYPE_REQ = 1; // 请求消息
+        MSGTYPE_RESP = 2; // 响应消息
+        MSGTYPE_NOTICE = 3; // 单播消息
+    }
+    MSGTYPE msgtype = 9;// 消息类型
+    bool    back_ground = 10;   // 是否处于后台，true表示处于后台，false表示处于前台。MSGTYPE_REQ类型消息才需要
+    bytes biz = 11; // 业务透传字段。
+    map<string,bytes> extend = 12; // 扩展字段
+    bytes routing_key = 13; // 路由信息
+}
+
+// 系统保留错误码 0-999
+enum ERet{
+    kRetSuccess = 0;
+    kRetErrParameter = 1;       // 参数错误
+    kRetErrCookie = 2;          // cookie错误
+    kRetErrUnauthorized = 3;    // 未授权
+    kRetErrUnknowUri = 4;       // 服务器不支持的uri
+    kRetErrVersion = 5;         // 不再支持该版本
+    kRetErrBanned = 6;          // 账号被封禁
+    kRetErrBusy = 7;            // 服务器忙
+
+    // Some requested entity (e.g., file or directory) was not found.
+    // HTTP Mapping: 404 Not Found
+    kRetErrNotFound = 8;
+
+    // The entity that a client attempted to create (e.g., file or directory)
+    // already exists.
+    //
+    // HTTP Mapping: 409 Conflict
+    kRetErrAlreadyExists = 9;
+
+    // The caller does not have permission to execute the specified
+    // operation. `PERMISSION_DENIED` must not be used for rejections
+    // caused by exhausting some resource (use `RESOURCE_EXHAUSTED`
+    // instead for those errors). `PERMISSION_DENIED` must not be
+    // used if the caller can not be identified (use `UNAUTHENTICATED`
+    // instead for those errors). This error code does not imply the
+    // request is valid or the requested entity exists or satisfies
+    // other pre-conditions.
+    //
+    // HTTP Mapping: 403 Forbidden
+    kRetErrPermissionDenied = 10;
+
+    // 版本不兼容，操作无法完成
+    kRetErrIncompatibleVersion = 11;
+
+    kRetErrGlobalGateWay = 21;
+
+    kRetErrSystem = 999;        // 系统错误，尽量少用这个
+
+    kRetErrGameIdNotExist = 1001;        // 游戏不存在，可能已经下架
+    kRetErrImPkRepeatedInvite = 1002;    // im pk重复邀请
+    kRetErrImPkInviteOutOfDate = 1003;   // im pk邀请过期
+    kRetErrGenPkGameUrlFailed = 1004;    // 创建pk URl失败
+
+    kRetErrS2SAddrlistFriendsFailed = 1005;  // s2s AddrlistFriends接口失败
+    kRetErrS2SFbFriendsFailed = 1006;        // s2s FbFriends接口失败
+    kRetErrS2SGetFriendListFailed = 1007;    // s2s GetFriendList接口失败
+    kRetErrS2SGetUserStatusFailed = 1008;    // s2s GetUserStatus接口失败
+    kRetErrS2SGetUsersInfoFailed = 1009;     // s2s GetUsersInfo接口失败
+    kRetErrGameMaintain = 1010;              // 游戏维护中
+    kRetErrGameFull = 1011;                  // 游戏标满
+    kRetErrImPkInviteAccepted = 1012;        // im pk邀请已被接受
+    kRetErrIdInvalid = 1013;                 // 场次无效
+    kRetErrPowerLow = 1014;                  // 能量不足
+    kRetErrMoneyLow = 1015;                  // 钱不足
+    kRetErrSource = 1016;                    // source错误
+
+    kRetErrRecommendDailyLimit = 1051;       //达到每天上限1000人
+    kRetErrRecommendNearbyNone = 1052;       //附近找不到人
+
+    // 2000 - 2100 组队游戏专用
+    kRetErrTeamFull = 2000;         // 组队人数已满
+    kRetErrTeamInvalid = 2001;      // 组队已失效
+    kRetErrGameHasBegun = 2002;     // 游戏已开始
+    kRetErrGameing = 2003;          // 用户游戏状态为游戏中，不能创建或加入新队伍
+    kRetErrInviteLeaved = 2004;     // 邀请者已离开房间
+    KRetErrBelongTeam = 2005;       // 用户在团队中，不能重新创建团队
+    kRetErrGetGameInfoErr = 2006;   // 获取游戏信息失败
+    kRetErrNoInMatch = 2007;        // 不在匹配中
+    kRetErrCancelMatchErr = 2008;   // 取消匹配失败
+    kRetErrUserNotInRoom = 2009;    // 用户不在指定房间
+    kRetErrTeamMatching = 2010;     // 团队匹配中
+    kRetErrImTeamCreating = 2011;   // 对方已接受你发起的im创建团队邀请，暂时不能再接受其它组队邀请
+    kRetErrChangeTemplate = 2012;   // 部分用户不支持切换组队模板
+
+    //2101 - 2200 语音呼叫协议专用
+    kRetErrVoiceChatSelfBusy = 2101; //自己正在忙碌中，例如正在游戏中（现在不支持），正在通话中
+    kRetErrVoiceChatOtherBusy = 2102;  //对方正在忙碌中，例如正在游戏中（现在不支持），正在通话中
+    kRetErrVoiceChatCallTimeout = 2103; //呼叫超时
+    kRetErrVoiceChatUserNotBeCall = 2104; //不是被呼叫的用户
+    kRetErrVoiceChatHadStarted = 2105; //聊天已经开始（取消失败的情况下）
+    kRetErrVoiceChatHadStop = 2106; //通话已结束
+    kRetErrVoiceChatOffLine = 2107; //对方不在线
+}
+
+enum ESex {
+    kSexFemale = 0;
+    kSexMale = 1;
+    kSexAll = 2;       // 用于性别过滤场景
+}
+
+// YMicro框架层返回码
+enum YMicroRet {
+    YMicroRetSuccess = 0; // 成功
+    YMicroRetBadRequest = 400; //请求非法
+    YMicroRetUnauthorized = 401; //请求未鉴权
+    YMicroRetForbidden = 403; // 请求被禁止
+    YMicroRetNotFound = 404; // 请求后端服务未找到
+    YMicroRetMethodNotAllowed = 405; // 请求后端方法被禁止
+    YMicroRetTimeout = 408; // 请求后端超时
+    YMicroRetConflict = 409; // 请求冲突
+    YMicroRetTooManyRequests = 429; // 请求过多
+    YMicroRetInternalServerError = 500; // 内部服务错误
+}
+
+
+message Result {
+	int64 errcode = 1;      // 每个协议自己定义, 0-999是系统保留
+	string errmsg = 2;      // 错误信息，可以被用来展示(包含了i18n的功能)
+	int64 magic = 3;        // 兼容处理: 0x4861676f
+}
+
+// 用一个很通用的名称表征通用response结构
+message Response {
+	Result result = 1;
+}
+
+
+
+/////////////////////////BIZ//////////////////////////////////
+// 用于控制变更行为
+enum EBizAction {
+    BizActionNone = 0;
+    BizActionAdd = 1;    // 添加、修改（也就是覆盖）
+    BizActionDel = 2;    // 删除
+}
+
+// 变更信息
+message BizAction {
+    int64 action = 1;    // see EBizAction
+    string sname = 2;    // Header.sname
+    string key = 3;
+    bytes  value = 4;
+    int64  valid_time = 5; // 有效期，秒，相对时间，比如5表示5s后失效。如果没设置或者<=0表示永久有效
+}
+
+enum EBizType {
+    EBizTypeNone = 0;
+    EBizTypeAction = 10;
+    EBizTypeInfos = 11;
+	EBizTypeExt = 12;
+}
+
+// BIZ 对应的是Header.biz字段，用于给业务做一些透传信息
+// 使用方法：
+//     服务器通过biz_actions告诉客户端更新biz信息，客户端将信息保存在内存里面
+//     客户端给服务端发包的时候，需要将对应的sname的biz信息填充在biz_infos字段里面
+message Biz {
+    repeated int64 types = 1;      // see EBizType
+
+    // 各列的编号和EBizType保持一致
+    repeated BizAction biz_actions = 10; // 下行包携带，用于给服务端控制客户端的biz信息
+    map<string, bytes> biz_infos = 11;	 // 上行包携带，客户端携带这些信息给对应的sname
+	map<string, bytes> biz_ext = 12;     // 一些扩展的字段，上下行都有可能，由业务自行决定怎么用
+}
+/////////////////////////BIZ//////////////////////////////////
+
+/////////////////////////PAGE//////////////////////////////////
+// 统一的分页结构体
+// 客户端请求带上：snap(第一次为0),  offset 和 limit
+// 服务器返回: snap,  offset(==0，偏移从0开始), limit, total, more(false表示到底了)
+// 全量列表: offset<0, limit <0
+// 对于非快照类型，服务端返回的offset<total就表示还有更多数据
+message Page {
+    int64 snap   = 1; // 快照版本号
+    int64 offset = 2; // 偏移 （<0:全量）
+    int64 limit  = 3; // 长度限制（<0:全量）
+    int64 total  = 4; // 总长度
+}
+/////////////////////////PAGE//////////////////////////////////

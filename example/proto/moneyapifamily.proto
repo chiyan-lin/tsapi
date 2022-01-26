@@ -1,0 +1,630 @@
+syntax = "proto3";
+
+// 服务注册名
+// 客户端会通过这个字段获取sname
+// 主命名空间：net.ihago
+// 子命名空间：ymicro (下面的服务类型对业务命名空间为保留字段)
+// 服务类型：srv/api/web/...
+// 服务名称：demo
+package net.ihago.money.api.family;
+
+// go的包名，引用时因为有git的项目路径作为命名空间，这里用短和清晰的名词
+option go_package = "family";
+option objc_class_prefix = "Family";
+
+import "common.proto";
+import "moneycommon.proto";
+
+// 以下根据业务实际情况编写
+// 表示一个family服务.
+service Family {
+  // 获取家族等级配置
+  rpc GetFamilyLvConfs(GetFamilyLvConfsReq) returns (GetFamilyLcConfsRes) {}
+
+  // 获取家族基本信息（个人资料卡可用)
+  rpc GetFamilyBaseInfo(GetFamilyBaseInfoReq) returns (GetFamilyBaseInfoRes) {}
+
+  // 获取多个家族的基础信息（非客户端，非H5调用，服务端(contribrank)调用
+  rpc GetFamilyBaseInfos(GetFamilyBaseInfosReq) returns (GetFamilyBaseInfosRes) {}
+
+  // 获取家族Profile(APP)
+  rpc GetFamilyProfile4App(GetFamilyProfile4AppReq) returns (GetFamilyProfile4AppRes) {}
+
+  // 获取最高的三个家族
+  rpc GetTopFamilies(GetTopFamiliesReq) returns (GetTopFamiliesRes) {}
+
+  // 获取家族月榜
+  rpc GetFamilyMonthRanks(GetFamilyMonthRanksReq) returns (GetFamilyMonthRanksRes) {}
+
+  // 获取家族Profile信息(H5)
+  rpc GetFamilyProfile(GetFamilyProfileReq) returns (GetFamilyProfileRes) {}
+
+  // 成员贡献榜单,非管理
+  rpc GetTopMembers(GetTopMembersReq) returns (GetTopMembersRes) {}
+
+  // 获取家族成员贡献信息, 家族长或者管理员管理家族用
+  rpc GetFamilyMembers(GetFamilyMembersReq) returns (GetFamilyMembersRes) {}
+
+  // 获取最近的动态
+  rpc GetLatestNews(GetLatestNewsReq) returns (GetLatestNewsRes) {}
+
+  // GetAllFamilyIDs 获取所有家族id(家族推荐使用)
+  rpc GetAllFamilyIDs(GetAllFamilyIDsReq) returns (GetAllFamilyIDsRes) {}
+
+  // 排位赛-获取右下角入口信息
+  rpc GetMatchEntryInfo(GetMatchEntryInfoReq) returns (GetMatchEntryInfoRes) {}
+
+  // 排位赛-获取赛程信息
+  rpc GetMatchSchedule(GetMatchScheduleReq) returns (GetMatchScheduleRes) {}
+
+  // 排位赛-获取家族资格赛榜单信息-个人级别榜单
+  rpc GetMatchQualifyRank(GetMatchQualifyRankReq) returns (GetMatchQualifyRankRes) {}
+
+  // 排位赛-获取家族淘汰赛信息
+  rpc GetMatchKnockoutRank(GetMatchKnockoutRankReq) returns (GetMatchKnockoutRankRes) {}
+
+  // 排位赛-获取家族积分赛信息
+  rpc GetMatchScoreRank(GetMatchScoreRankReq) returns (GetMatchScoreRankRes) {}
+
+  // 排位赛-获取家族决赛信息
+  rpc GetMatchFinalInfo(GetMatchFinalInfoReq) returns (GetMatchFinalInfoRes) {}
+
+  // 排位赛-获取家族成员
+  rpc GetMatchFamilyMembers(GetMatchFamilyMembersReq) returns (GetMatchFamilyMembersRes) {}
+
+  // 抽奖-获取用户碎片信息
+  rpc GetUserPieceInfo(GetUserPieceInfoReq) returns (GetUserPieceInfoRes) {}
+
+  // 抽奖-获取用户中奖纪录
+  rpc GetUserWinLogs(GetUserWinLogsReq) returns (GetUserWinLogsRes) {}
+
+  // 抽奖-获取转盘列表
+  rpc GetDrawPoolInfo(GetDrawPoolInfoReq) returns (GetDrawPoolInfoRes) {}
+
+  // 抽奖-抽奖
+  rpc LuckyDraw(LuckyDrawReq) returns (LuckyDrawRes) {}
+
+  // 兑换-获取兑换奖品列表
+  rpc GetExchangeItems(GetExchangeItemsReq) returns (GetExchangeItemsRes) {}
+
+  // 兑换-兑换物品
+  rpc ExchangeItem(ExchangeItemReq) returns (ExchangeItemRes) {}
+
+  // 抽奖-全局最新中奖记录
+  rpc GetLatestDrawLogs(GetLatestDrawLogsReq) returns (GetLatestDrawLogsRes) {}
+
+  // 服务端自测接口
+  rpc TestInterface(TestInterfaceReq) returns (TestInterfaceRes) {}
+}
+
+enum ECode {
+  CODE_OK = 0; //操作成功
+
+  // 基本错误码
+  CODE_SERVER_ERROR = 1000; //服务器错误
+  CODE_FREQ_ERROR = 1001; //操作频率太高
+  CODE_INNER_ERROR = 1003; //服务器内部错误
+  CODE_PARAM_ERROR = 1004; //参数错误
+
+  // 排位赛相关错误码 20000-29999
+  CODE_ACT_IS_OVER = 20000; //排位赛活动已结束
+
+  CODE_NOT_ENOUGH_PIECE = 21000; //兑换/抽奖-碎片不足
+  CODE_EXCHANGE_ITEM_NONE = 21001; //兑换-已被抢完
+  CODE_EXCHANGE_LIMITED = 21002; //兑换-达到上限
+}
+
+message FamilyLvConf {
+  int32 lv = 1;    //等级
+  int64 score = 2; //到当前级别所需积分,1级就是0，默认1级
+  string icon = 3; //等级icon
+  repeated string big_bg_colors = 5; //色彩列表
+  string upgrade_icon = 6; //升级，上升的图标
+  string minicard_bg = 7; //mini资料卡的背景
+  string base_color = 8; //基础颜色
+  string name = 9; //名字，服务端根据header筛选语言
+  string long_icon = 10; //长的icon
+}
+
+message GetFamilyLvConfsReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+}
+
+message GetFamilyLcConfsRes {
+  common.Result result = 1; //结果
+  repeated FamilyLvConf confs = 2; //配置列表
+}
+
+message GetFamilyBaseInfoReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  int64 uid = 2; //看谁的
+}
+
+message GetFamilyBaseInfoRes {
+  common.Result result = 1; //结果
+  string fid = 2; //家族频道id, 为空说明不在
+  string name = 3; //家族名字
+  string avatar = 4; //家族头像
+  int32 lv = 5; //家族等级
+}
+
+message GetFamilyProfile4AppReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  string fid  = 2; // 请求的家族id
+}
+
+message GetFamilyProfile4AppRes {
+  common.Result result = 1; //结果
+  FamilyLvInfo lv_info = 2; //等级信息
+  repeated moneycom.User top_members = 7; //最高贡献的几个人
+}
+
+message GetTopFamiliesReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+}
+
+message GetTopFamiliesRes {
+  common.Result result = 1; //结果
+  repeated FamilyLvInfo top_infos = 2; //最高的几个
+}
+
+message FamilyInfo {
+  string fid = 1; //家族频道id,长号
+  string name = 2; //频道名字
+  string avatar = 3; //家族头像
+  int32 member_count = 4; //当前成员数目
+  int32 member_limit = 5; //成员上限
+  int64 owner = 6; //家族长uid
+  string cute_id = 7; //频道短号
+}
+
+message FamilyLvInfo {
+  FamilyInfo info = 1; //家族基本信息
+  int32 rank = 2;  //排第几, 0说明不在榜单内
+  int64 score = 3; //积分
+  int32 lv = 6; //等级
+}
+
+message FamilyBaseInfo {
+  string fid = 1;  //家族id
+  string name = 2;  //家族名字
+  string avatar = 3; //家族头像
+  int32 lv = 4; //家族等级
+}
+
+message GetFamilyBaseInfosReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  repeated string fids = 2; //家族id列表
+}
+
+message GetFamilyBaseInfosRes {
+  common.Result result = 1; //结果
+  repeated FamilyBaseInfo infos = 2; //信息列表
+}
+
+message GetFamilyMonthRanksReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  int32 last_rank = 2; // 每次请求20个，首页为0，翻页最上一页的最后一个rank，返回不够20为没有下一页
+  string month = 3; //空字符串就是当前月，历史月份填"202002", "202001"类似
+}
+
+message GetFamilyMonthRanksRes {
+  common.Result result = 1; //结果
+  repeated FamilyLvInfo ranks = 2;  //榜单
+  FamilyLvInfo my_info = 3; //我的家族信息, 如果是查看历史这个为空
+}
+
+message FamilyContribInfo {
+  int32 rank = 1;  //排名
+  moneycom.User user = 2; //谁
+  int64 value = 3; //值
+}
+
+message FamilyContribDetail {
+  int32 rank = 1; //排名
+  moneycom.User user = 2; //谁
+  int64 score = 3; //积分
+  int64 charm = 4; //魅力值
+  int64 contribution = 5; //贡献值
+  int64 activity = 6; //活跃值
+}
+
+
+message GetFamilyProfileReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  string fid = 2; //家族频道id
+}
+
+message GetFamilyProfileRes {
+  common.Result result = 1; //结果
+  FamilyLvInfo family_info = 2; //家族信息
+  repeated FamilyContribDetail top_infos = 3; //top的几个
+}
+
+message GetTopMembersReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  string fid = 2; //家族频道id
+  int32 last_rank = 3; // 每页20个，上页末尾最后那个，如果是详情页，往下拖就接着详情返回的最后那个rank，如果是列表首页就给0, 不够20个说明没有下一页
+}
+
+message GetTopMembersRes {
+  common.Result result = 1; //结果
+  repeated FamilyContribDetail top_infos = 2; //列表
+  FamilyContribDetail my_detail = 3; //我的排名情况
+}
+
+
+enum OrderType {
+  ORDER_TYPE_DESC = 0; //降序，从大到小
+  ORDER_TYPE_ASC = 1;  //升序，从小到大
+}
+
+enum OrderSource {
+  ORDER_SOURCE_SCORE = 0; //总积分
+  ORDER_SOURCE_CHARM = 1; //魅力值
+  ORDER_SOURCE_CONTRIBUTION = 2; //贡献值
+  ORDER_SOURCE_ACTIVITY = 3; //活跃度
+}
+
+message GetFamilyMembersReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  string fid = 2; //家族频道id
+  OrderSource order_source = 3; //根据什么值来排序
+  OrderType order_type = 4; //升序还是降序
+  int32 last_rank = 5; //上一次的最后一个rank，每页20个，首页为0
+}
+
+message GetFamilyMembersRes {
+  common.Result result = 1; //结果
+  repeated FamilyContribDetail infos = 2; //列表
+  //FamilyContribDetail my_detail = 3; //我的详情
+}
+
+enum NewsType {
+  NEWS_TYPE_SEND_GIFT = 0;    //送礼类型
+  NEWS_TYPE_RECEIVE_GIFT = 1;  //收礼类型
+  NEWS_TYPE_JOIN = 2;  //加入家族
+  NEWS_TYPE_UPGRADE = 3; //家族升级
+  NEWS_TYPE_IDENTITY = 4; //成员身份
+}
+
+// FamilySimpleInfo 简单信息，包含最高三个人
+message FamilySimpleInfo {
+  FamilyLvInfo family_info = 1; //家族基本信息
+  repeated moneycom.User top_members = 7; //最高贡献的3个人
+}
+
+message NewsMsg {
+  int64 id = 1;  //id
+  NewsType news_type = 2;
+  FamilySimpleInfo family_info = 3;  //哪个家族
+  moneycom.User user = 4;  //谁
+  int32 gift_id = 5; //礼物id
+  int32 gift_amount = 6;  //礼物
+  int64 score = 7;  //礼物影响的积分
+  int32 upgraded_lv = 8;  //升到第几级
+  int32 identity = 9; //成员身份
+  int64 update_time = 20;  //更新时间
+}
+
+message GetLatestNewsReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  int64 last_id = 2;  // 最后一个id
+}
+
+message GetLatestNewsRes {
+  common.Result result = 1; //结果
+  repeated NewsMsg msgs = 2; //消息列表
+}
+
+message GetAllFamilyIDsReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+}
+
+message GetAllFamilyIDsRes {
+  common.Result result = 1; //结果
+  repeated string fids = 2; //家族id列表
+}
+
+// 赛程阶段
+enum EPhase {
+  PHASE_NONE = 0;
+
+  PHASE_NOT_STARTED = 10;   // 未开始
+  PHASE_NOT_REST    = 11;   // 休息
+
+  // 家族赛
+  PHASE_QUALIFY = 20;       //家族资格赛
+  PHASE_KNOCKOUT1 = 30;     //家族淘汰赛阶段1,50/40 --> 25/20，榜首进阶10强
+  PHASE_KNOCKOUT2 = 31;     //家族淘汰赛阶段2,24/19 --> 9 争夺10强剩余9个席位
+  PHASE_SCORE = 40;         //家族积分赛，若干天，每天前四名分别积分4/3/2/1
+  PHASE_SEMIFINALS = 50;    //家族半决赛，1vs4 2vs3
+  PHASE_FINALS = 60;        //家族决赛
+
+  PHASE_FINISHED = 1000;    //结束
+}
+
+message GetMatchEntryInfoReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+}
+
+message GetMatchEntryInfoRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+
+  EPhase current_phase = 3; // 当前阶段
+  int32 style = 5; // 当前样式
+
+  FamilyInfo channel_owner_family = 21; //样式2(非pk)/样式3(pk)：房主家族
+  int64 channel_owner_family_score = 22; //样式2(非pk)/样式3(pk)：房主家族星光值
+  int32 channel_owner_family_rank = 23; //样式2(非pk)/样式3(pk)：房主家族排名
+  FamilyInfo channel_owner_rival = 26; //样式3(pk)：房主对手家族
+  int64 channel_owner_rival_score = 27; //样式3(pk)：房主对手家族星光值
+  int64 channel_owner_rival_rank = 28; //样式3(pk)：房主对手家族排名
+
+  bool has_join_family = 31; //样式4(报名)：是否加入家族
+}
+
+message GetMatchScheduleReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+}
+
+message PhaseInfo {
+  EPhase phase = 1; //阶段
+  int64 begin_ts = 2; //开始时间戳，单位：秒
+  int64 end_ts = 3; //结束时间戳，单位：秒
+  bool is_rest = 4; //是否休息阶段
+  int64 join_count = 5; //参与队伍数，0标识N
+  int64 win_count = 6; //获胜队伍数
+}
+
+message GetMatchScheduleRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+
+  PhaseInfo current_phase = 3; //当前阶段
+  repeated PhaseInfo phase_infos = 4; //各阶段信息
+  bool is_in_rank = 5; //是否赛程进行时
+}
+
+message RankItem {
+  moneycom.User user = 1; //用户信息
+  FamilyInfo family = 2; //家族信息
+  int32 rank = 3; //排名
+  int64 score = 4; //各种榜单的排序主值，如能量值
+  int64 sub_value = 5; //其他的相关积分数据，目前只有积分赛时用到，如积分赛时的积分
+}
+
+message GetMatchQualifyRankReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  int32 limit = 2; //限制数目
+  string cursor = 3; //游标信息，分页请求时，首次填空，下次请求填上一次服务端返回的接口
+}
+
+message GetMatchQualifyRankRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+
+  int64 join_count = 3; //参与人数
+  int64 win_count = 4; //获胜人数
+  int64 remain_sec = 5; //剩余时间，单位：秒
+  repeated RankItem ranks = 6; //排行榜信息
+  RankItem my_info = 7; //我的信息，首次请求才会返回
+  bool has_more = 8; //是否还有
+  string cursor = 9; //游标信息，下次请求时携带
+}
+
+message GetMatchKnockoutRankReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  int32 limit = 2; //限制数目
+  string cursor = 3; //游标信息，分页请求时，首次填空，下次请求填上一次服务端返回的接口
+  EPhase phase = 4; //淘汰赛对应阶段
+}
+
+message GetMatchKnockoutRankRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+
+  int64 join_count = 3; //参与队伍数
+  int64 win_count = 4; //获胜队伍数
+  int64 remain_sec = 5; //剩余时间，单位：秒
+  repeated RankItem ranks = 6; //排行榜信息
+  bool has_more = 7; //是否还有
+  string cursor = 8; //游标信息，下次请求时携带
+
+  repeated RankItem last_tops = 20; //直通的，成员变量rank表示上轮比赛的名次
+}
+
+message GetMatchScoreRankReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+}
+
+message GetMatchScoreRankRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+
+  int64 join_count = 3; //参与队伍数
+  int64 win_count = 4; //获胜队伍数
+  int64 remain_sec = 5; //剩余时间，单位：秒
+  repeated RankItem total_ranks = 6; //积分总榜信息,RankItem.Score标识总积分，RankItem.sub_value标识总能量值
+  repeated RankItem daily_ranks = 7; //当日积分信息,RankItem.Score标识排序的能量值，RankItem.sub_value标识预期获得的积分
+}
+
+message GetMatchFinalInfoReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+}
+
+message PKMatchPair {
+  FamilyInfo left_family = 1;
+  int64 left_score = 2;
+  FamilyInfo right_family = 3;
+  int64 right_score = 4;
+}
+
+message GetMatchFinalInfoRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+
+  int64 begin_ts = 3; //开赛时间戳，单位：秒，未开赛时不提供比分
+  int64 remain_sec = 4; //剩余时间，单位：秒
+  repeated PKMatchPair match_pairs = 5; //PK信息
+
+  repeated RankItem cur_tops = 10; //当前已出的top，如第二轮进行时，tops为三四名；如决赛结束，tops为一二三四名
+}
+
+message GetMatchFamilyMembersReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  string family_fid = 2; //家族fid
+  int32 limit = 3; //限制数目
+  string cursor = 4; //游标信息，分页请求时，首次填空，下次请求填上一次服务端返回的接口
+}
+
+message GetMatchFamilyMembersRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+
+  repeated RankItem members = 5; //家族成员
+  string cursor = 6; //游标信息，下次请求时携带
+  bool has_more = 7; //是否还有
+  int64 family_score = 8; //家族积分，首次请求才会返回
+  int64 family_rank = 9; //家族排名，首次请求才会返回
+
+  FamilyInfo family_info = 10; //家族信息，首次请求才会返回
+  RankItem leader = 11; //家族长数据，首次请求才会返回
+  bool is_my_family = 12; //是否我的家族
+  RankItem my = 13; //我的数据，is_my_family为true且首次请求才会返回
+}
+
+message GetUserPieceInfoReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+}
+
+message GetUserPieceInfoRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+
+  int64 piece_cnt = 3; // 当前碎片个数
+}
+
+message GetUserWinLogsReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  int32 limit = 3; //限制数目
+  string cursor = 4; //游标信息，分页请求时，首次填空，下次请求填上一次服务端返回的接口
+  EWinLogType log_type = 5; //中奖类型
+}
+
+enum EWinLogType {
+  TYPE_EXCHANGE = 0; //兑换
+  TYPE_DRAW = 1; //抽奖
+}
+
+message WinLog {
+  moneycom.PrizeInfo prize = 1; //奖品
+  int64 ts = 2; //中奖unix timestamp时间戳，单位秒
+}
+
+message GetUserWinLogsRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+
+  repeated WinLog logs = 5; //记录
+  string cursor = 6; //游标信息，下次请求时携带
+  bool has_more = 7; //是否还有
+}
+
+message GetDrawPoolInfoReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+}
+
+message DrawGear {
+  string id = 1; //档位id
+  int32 times = 2; //几连抽
+  int32 piece_cnt = 3; //所需碎片
+}
+
+message GetDrawPoolInfoRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+
+  repeated moneycom.PrizeInfo prizes = 3; //奖池列表
+  repeated DrawGear gears = 4; // 可选择抽奖档位
+}
+
+message LuckyDrawReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  string gear_id = 2; // 本次抽奖档位id，DrawGear.Id
+}
+
+message LuckyDrawRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+
+  bool win = 3; //是否中奖
+  repeated moneycom.PrizeInfo prizes = 4; //奖品
+}
+
+enum EItemStatus {
+  STATUS_NONE = 0; //无效状态
+  STATUS_CAN = 1; //可兑换
+  STATUS_NOT_MEET = 2; //不可兑换-不满足碎片条件
+  STATUS_NOT_ENOUGH = 3;  //不可兑换-已被抢完，没有库存
+  STATUS_LIMITED = 4;  //不可兑换-达到每日兑换限制
+}
+
+message ExchangeItem {
+  moneycom.PrizeInfo prize = 1; //兑换物品
+  int32 piece_cnt = 2; //所需碎片数
+  int32 remain_cnt = 4; //剩余个数
+  int32 daily_cnt = 5; //每日每人该物品限制次数
+  EItemStatus status = 6; //状态
+}
+
+message GetExchangeItemsReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+}
+
+message GetExchangeItemsRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+
+  repeated ExchangeItem items = 3; //可兑换物品列表
+}
+
+message ExchangeItemReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  string prize_object_id = 2; // Item.Prize.ObjectId
+}
+
+message ExchangeItemRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+}
+
+message GetLatestDrawLogsReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+}
+
+message UserWinLog {
+  moneycom.User user = 1; //用户信息
+  moneycom.PrizeInfo prize = 2; //奖励信息
+}
+
+message GetLatestDrawLogsRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+
+  repeated UserWinLog logs = 3; //中奖记录
+}
+
+message TestInterfaceReq {
+  int64 sequence = 1;  // 请求序列号，可填纳秒级时间戳
+  string cmd = 2;
+  map<string, string> map_extend = 3;
+}
+
+message TestInterfaceRes {
+  common.Result result = 1; //结果
+  int64 sequence = 2;
+  map<string, string> map_extend = 3;
+  repeated string array_extend = 4;
+}

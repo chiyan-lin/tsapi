@@ -1,0 +1,621 @@
+syntax = "proto3";
+
+package biz;
+
+option go_package = "pbbiz";
+option objc_class_prefix = "Biz";
+
+// simport "basetag.proto";
+
+// 角色类型
+enum ChannelRoleType {
+    CHANNEL_ROLE_TYPE_NONE = 0;
+    CRT_GUEST = 1; // 游客
+    CRT_MEMBER = 5; // 成员
+    CRT_MASTER = 10; // 管理员
+    CRT_OWNER = 15; // 群主
+}
+
+// 角色消息接受模式
+enum MemberMsgRecvMode {
+    CMMR_NONE = 0;
+    CMMR_All = 1;
+    CMMR_DND = 2; // DND,Don't Disturb 免打扰设置
+}
+
+// 发言模式
+enum ChannelSpeakMode {
+    CHANNEL_SPEAK_MODE_NONE = 0;
+    CSM_ALL = 1; // 自由发言
+    CSM_MEMBER_ONLY = 2; // 游客禁言，成员才能发言
+    CSM_MASTER_ONLY = 3; // 全员禁言，管理员才能发言
+}
+
+//游客发言权限Bitmask
+enum GuestSpeakLimitBitmask {
+    GSA_NONE = 0;
+    GSA_TEXT = 1; //文本
+    GSA_IMAGE = 2; //图片
+    GSA_AUDIO = 4; //语音
+    GSA_GAME_INVITE = 8; //游戏邀请(端内和端外)
+    GSA_RAND_EMOJI = 16; //大表情
+}
+
+// 进房模式
+enum ChannelEnterMode {
+    CHANNEL_ENTER_MODE_NONE = 0;
+    CEM_FREE = 1; // 自由出入
+    CEM_PASSWORD = 2; // 需要密码
+}
+
+// 频道Lock时Enter模式
+enum ChannelLockEnterMode {
+    CHANNEL_LOKE_ENTER_MODE_NONE = 0;  // 历史数据,游客和成员都需要密码
+    CLEM_ALL_PASSWORD            = 1;  // 游客和成员都需要密码
+    CLEM_ONLY_GUEST_PASSWORD     = 2;  // 游客需要密码, 频道成员无需密码
+}
+
+// 管理员播放背景音乐模式
+enum ChannelMasterPalyBgmMode {
+    CMPB_ENABLE       = 0;  // 允许管理员播放背景音乐
+    CMPB_DISABLE      = 1;  // 不允许管理员播放背景音乐
+}
+
+// 加群模式
+enum ChannelJoinMode {
+    CHANNEL_JOIN_MODE_NONE = 0;
+    CJM_FREE = 1; // 自由加群
+    CJM_APPROVE = 2; // 需要管理员批准
+}
+
+// 语音聊天加群模式
+enum ChannelVoiceEnterMode {
+    CHANNEL_VOICE_ENTER_MODE_NONE = 0; //所有人
+    CVEM_MEMBER_ONLY = 1; // 仅成员
+    CVEM_MASTER_ONLY = 2; // 仅管理员
+}
+
+// 语音聊天模式
+enum ChannelVoiceMode {
+    CHANNEL_VOICE_MODE_NONE = 0;
+    CVM_ALLOW = 1; // 成员可以发起聊天
+    CVM_DISABLE = 2; // 成员聊天关闭
+}
+
+// 频道类型
+enum ChannelType {
+    CHANNEL_TYPE_NONE = 0;
+    CT_TOP = 1; // 顶级频道，不可删除
+    CT_CHILD = 2; // 子频道
+}
+
+// 封禁原因，不加channel前缀，各种封禁共用
+enum BanReason {
+    BAN_REASON_NONE = 0;
+    BR_PORN = 1; // 色情
+    BR_GAMBLING = 2; // 赌博
+    BR_POLITICAL = 3; // 涉政
+    BR_OTHER = 100; // 其他
+}
+
+// 频道标签分类
+enum ChannelTagType {
+    CHANNEL_THEME_TYPE_NONE = 0;
+    CTT_DATE = 1;
+    CTT_MAKEFRIENDS = 2;
+    CTT_SING = 3;
+    CTT_CHAT = 4;
+    CTT_GAME = 5;
+}
+
+// 插件类型
+enum PluginType {
+    PLUGIN_TYPE_NONE = 0; //没有开启插件
+
+    PT_BASE = 1; // 基础模板，也就是文字房模式
+
+    // 那些native的玩法 ,注意 >=10的值 用来表示在语音模板的插件
+    PT_CHAT = 10; // 基础语音房
+    PT_KTV = 11; // KTV
+    PT_MICUP = 12; // 音遇
+    PT_MAKEFRIENDS = 13; // 交友
+    PT_RADIO = 14; // 音频秀场(电台)
+
+    PT_CHESS = 100; // 棋牌游戏
+    PT_LOTTERY = 101; // 博彩
+
+    PT_LUA_GAMES = 200; // LUA游戏
+
+    PT_ZHU_LI = 300; //助力游戏，目前有羊羊消消乐(yangyangxiaochu)
+
+}
+
+// 帖子同步的权限控制
+enum PostSyncRole {
+    POST_SYNC_ROLE_NONE = 0;
+    PSR_All = 1; //所有成员
+    PSR_MASTER = 2; // 管理员
+    PSR_OWNER = 3; // 频道主
+}
+// 帖子同步的内容限制
+enum PostSyncContent {
+    POST_SYNC_CONTENT_NONE = 0;
+    PSC_All = 1; //允许任何动态
+    PSC_TAG = 2; // 仅限在某个tag的帖子
+}
+// 为了便于扩展，一个消息由多个片段组成，比如文本，图片。这里定义片段内容类型，不加channel前缀，IM共用
+enum IMSecType {
+    IM_SEC_TYPE_NONE = 0;
+
+    // 需要审核的
+    IST_TEXT = 1; // 普通文本. content内容是文本字符串
+    IST_IMAGE = 2; // 图像. content 图片url，上传路径是/im/image/xxx.yyy xxx是图片内容md5值，yyy是后缀 extension:{"h":123, "w":456, "is_gif":true/false, "emoji_type":0 表示非表情图片，1 表示用户自定义表情图片类型}
+    IST_AUDIO = 3; // 语音. content:语音url, extension:{"duration":1234} // duration:语音时长,单位: 毫秒
+    IST_VIDEO = 4; // 视频. content待定
+    IST_MUSIC = 5; // 音乐. content待定
+    IST_ACTIVITY = 6; // 活动链接. content url
+
+    // 群信令信息也走IM系统, 1000-2999，extention统一为{"cid":"xxx", "pid":"yyy", "uid":xxx, "nick":"xxx", "ver":xxx} uid/nick是操作者的信息, ver递增版本
+    // 群基础操作 1000-1099
+    IST_CREATE = 1000; // 创建子频道，发给成员 content:{"cid":"xx",name":"xxx", "is_private":true}
+    IST_DISBAND = 1001; // 解散子频道，发给成员 content {"cid":"xx", "ch_notify": true}
+    IST_SET_PRIVATE = 1002; // 设置私密，发给成员 content:{"is_private":true}
+    IST_SET_NAME = 1003; // 设置名称，发给成员 content:{"name":"xxx", "type":0} type:0或空 群主修改; 1 系统违规修改
+    IST_SET_BULLETIN = 1004; // 设置公告，发给成员 content:{"bulletin":"xxx", "type":0} type:0或空 群主修改; 1 系统违规修改
+    IST_SET_SPEAKMODE = 1005; // 设置发言模式，发给成员 content:{"mode":xxx}
+    IST_SET_ENTERMODE = 1006; // 设置进房方式，发给成员 content:{"mode":xxx, "password":"xxx"} // password和pwd_token字段，只有管理员才有
+    IST_SET_JOINMODE = 1007; // 设置加群方式，发给成员 content:{"mode":xxx}
+    IST_SET_VOICEMODE = 1008; // 设置语音聊天模式，发送成员 content:{"mode":xxx}
+    IST_SET_TAGTYPES = 1009; // 设置频道标签分类，发送成员 content:{"tag_types":[xxx]}
+    IST_SET_VOICE_ENTER_MODE = 1010; // 设置语音聊天权限模式，发送成员 content:{"voice_enter_mode":1}
+    IST_SET_GUEST_SPEAK_LIMIT = 1011; // 设置游客聊天禁用项，发送成员 content:{"guest_speak_limit":1}
+    IST_SET_TAGS = 1012; // 设置频道bbs标签分类，发送成员 content:{"tags":["xxx"]}
+
+    // IST_OPER_BANNED = 1007; // (弃用) 官方封禁频道，发给成员 content:{"reason":xxx}
+    // 成员相关 1100-1199
+    IST_JOIN_APPLY = 1100; // 请求加群，发给管理员 content:{"reason":"xxx", "apply_id":"xxx", "expire_ts": 0123, "apply_uinfo":{"uid":xxx, "nick":"", "avatar":""}, "ch_notify": true} //ch_notify=true 给频道通知的消息
+    IST_JOIN_APPROVE = 1101; // 加群审批，如果是拒绝，发给申请者，如果是同意，发给成员 content:{"apply_id":"xxx", "accept":false, "reason":"xxx", "role":xxx, "uid": xxx, "nick":"xxx", "avatar":"xxx", "apply_uinfo":{"uid":xxx, "nick":"", "avatar":""}, approve_uinfo:{"uid":xxx, "nick":"", "avatar":""}, "ch_notify": true}
+    IST_SET_ROLE = 1102; // 只有被设人在从游客被邀请为成员时会收到这条请求 content:{"set_id":"xxx", "expire_ts": 0123, "inviter_uinfo":{"uid":xxx, "nick":"", "avatar":""}, "ch_notify": true}, 其他人不会收到这条消息,
+    IST_ACCEPT_ROLE = 1103; // 接受身份，如果是拒绝，发给发起的管理员，如果是同意，发给成员 {"set_id":"xxx", "accept":false, "role":xxx, "uid": xxx, "nick":"xxx", "avatar":"xxx", "inviter_uinfo":{"uid":xxx, "nick":"", "avatar":""}, "invitee_uinfo":{"uid":xxx, "nick":"", "avatar":""}, "ch_notify": true}
+    IST_BANNED = 1104; // 设置禁言，发给被禁者 content:{"time":xxx, "only_this":true, "uid":xxx, "nick":"xxx", "banned":xxx} banned: true禁言，false解禁  time是解禁的unix timestamp, uid/nick是被禁言者的信息
+    IST_KICKOFF = 1105; // 提出频道，发给成员 content:{"uid":xxx, "nick":"xxx"} uid/nick是被踢者的信息
+    IST_SET_REMARK = 1106; // 设置备注，发给成员 content:{"remark":"xxx"}
+    IST_USER_ROLE_CHANGE = 1107; // 用户身份发生变化，发生给所有成员和在频道的人 {auto_approve:bool, "type":xxx, "role":xxx，"old_role":xxx, "uid": xxx, "nick":"xxx", "avatar":"xxx", "changed_uinfo":{"uid":xxx, "nick":"", "avatar":""}, "operator_uinfo":{"uid":xxx, "nick":"", "avatar":""}, "ch_notify": true} type: 1 为用户主动申请 2 为管理员设置；auto_approve: true 自动审批，false不是自动审批
+
+    // 不需要审核的，这种后续扩展，服务端不用升级. 2000-4999
+    IST_GAME_INVITE = 2000; // 游戏邀请，发给成员 content:{"type":0, "game_id":"**", "ver":18, "templ":1, "invite_id":"**", "url":"http://user2.jpg", "sex":1, "valid":true} type为0表示1v1, valid为false表示已经有人应答或者取消
+    IST_CANCEL_GAME_INVITE = 2001; // 取消邀请，发给成员 content:{"invite_id":"xxx", "type":1} type: 0:超时, 1:用户自己取消, 2:已经被接受
+    IST_UINFO = 2002; // 个人名片，发给成员 content:{"url":"xxx", "nick":"xxx"} url表示头像信息
+    IST_WITHDRAW = 2003; // 撤回消息，发给成员 content:{"sid":xxx, "msgid":xxx, "wtype":0} sid表示sessionid，单聊才会填, wtype 0或空:违规撤回, 1:系统撤回, 2:用户撤回
+    IST_RED_PACK = 2004; // 红包，发给成员  content待定
+    IST_TAT = 2005; // @某人，发给成员 content:{"uid":xxx, "nick":"xxx"}  uid/nick表示被at的人的信息，如果uid==0则表示at所有人，管理员才可以
+    IST_OPEN_VOICE_CHAT = 2006; // 开启/关闭语音聊天 content:{"open":xxx} open: true:开启 false:关闭
+    IST_OPEN_VOICE_GAME = 2007; // 加载语音玩法 content:{"type":xxx, "pid":"xxx", "ver":xxx, "templ":xxx, "ctx":"xxx", "ext":"xxx"}, 参数参考: PluginInfo
+    IST_CLOSE_VOICE_GAME = 2008; // 关闭语音玩法 content:{"type":xxx, "pid":"xxx", "ver":xxx, "templ":xxx, "ctx":"xxx", "ext":"xxx"},参数参考: PluginInfo
+    IST_OUTSIDE_GAME_INVITE = 2009; // 频道外发起游戏邀请，发给成员 content:{"type":0, "game_id":"**", "ver":18, "templ":1, "invite_id":"**", "url":"http://user2.jpg", "sex":1, "valid":true} type为0表示1v1, valid为false表示已经有人应答或者取消
+    IST_NOT_COMPACT_PLUGIN = 2010; // 不兼容的玩法
+    IST_LOCATION = 2011; // 发送地理位置 content:{"lng":113.3011, "lat":23.096}
+
+    // 分享，内容客户端协商
+    IST_SHARE_TO_CHANNEL = 2100;        // 分享到频道
+    IST_SHARE_TO_TOP_CHANNEL = 2101;    // 只能分享到顶级频道
+    IST_SHARE_TO_SUB_CHANNEL = 2102;    // 只能分享到子频道
+
+    // extention:{"result":[{"key":"xxx", "rand_val":xxx}, {...}, ...]}, rand数组3个随机数(随机数服务器生成)
+    IST_RAND_EMOJI = 3000; // 大表情，发给成员 content:{"randoms":[{"key":"xxx", "lowerbound":xxx, "upperbound":xxx}, {...}, ...]}
+
+    //游戏大厅挑战模式卡片消息
+    IST_CLG_CREATE = 3100; //ChallengeGame 挑战模式游戏 content:{card_id:"","winStreakAll":1,"winStreak":3,"level":0, "sponsorUid":,"game_id":"","team_id":""}
+    IST_CLG_GAMERESULT = 3101; //ChallengeGameResult 挑战模式游戏结果content:{card_id:"","winnerUid":,"winStreakNum":3,"level":0,"avatars":[""],"gid":""}
+    IST_CLG_GAMERANK = 3102; //ChallengeGameRank 挑战模式游戏排行content:{card_id:"","rank":4,"streakWins":3,"uid":}
+    IST_INVITE_TEAM = 3103; // 邀请组队
+    IST_CLG_STATECHANGE = 3104; //ChallengeStateChange   挑战模式状态改变content:{card_id:"","team_id":"","c_state":3,"c_uid":}
+    IST_TEAM_INVALID = 3105; // 组队失效 content:{"team_id":""}
+    IST_CLG_LABELTIP = 3106; //公屏消息{"uid":10000010, "nick":"sxxx",type:0,"fUid":10000010 "fNick":11111,gid:""} 0-抢到 1-没抢到 2-输赢公屏
+    IST_CLG_ESTPICKMEHATMSG = 3107; //pick新一轮
+    IST_TEAM_GAME_FINISH = 3108; // 组队游戏结束
+
+    IST_CHANNEL_NEW_BBS_POST = 3200; //频道里有新的帖子{"pid":"xxxx","post_uid"} pid表示帖子id,post_uid表示发帖的用户
+
+    IST_AVATAR_TEXT = 3300; // 左边头像， 右边文案 content:{""content :"",uiType":1,"uid":0,"avatars":""}
+
+    IST_NEW_MEMBER_WELCOME = 3310; //3.13版本，新用户加入频道成员的欢迎语， content:{"member_uid":xxx,title":"xxx", "content":"xxxx","nick":"xxx"}
+
+    IST_ANCHOR_SIT_DOWN = 3400; //3.14版本，主播（包括房主、频道管理员、语音房管理员）在子语音房上麦, content:{"pid":"xxx","cid":"xxxx","sitdown_uid":xxx,"gid":"xxx", "plugin_type":xxxx},gid游戏id
+    IST_SUB_FIRST_ONLINE = 3401; //3.14版本，子语音房有8人在线, content:{"pid":"xxx","cid":"xxxx","online":xxx}
+    IST_SUB_SECOND_ONLINE = 3402; //3.14版本，子语音房有50人在线, content:{"pid":"xxx","cid":"xxxx","online":xxx}
+    //机器人消息
+    IST_CHANNEL_MANAGER_ROBOT_WELCOME_MSG = 3500;  // 频道机器人欢迎消息  content:{"robotIns":{},"uid":xxx,"text":xxx, "photoURL":xxx, "insId":xxx}
+    IST_CHANNEL_MANAGER_ROBOT_TAT_MSG = 3501;  // 频道机器人定时@所有人消息 content:{"robotIns":{},"topic":xxx,"text":xxx, "photoURL":xxx, "insId":xxx}
+    IST_CHANNEL_ROBOT_SYS_MSG = 3502; // 频道机器人通用系统消息 content:{"text":xxx, "robotIns":{}}
+    IST_CHANNEL_ROBOT_MSG = 3503; // 频道机器人通用消息 content:{"text":xxx, "robotIns":{}} 【已废弃】
+
+    IST_ENTER_CHANNEL = 3600;//进房间飞机票，可通过此链接进入房间 content:{"cid":"xxx","share_uid":xxx,"time":xxx} cid频道id，share_uid分享者uid,time是创建时间unix timestamp（单位秒）
+    IST_SEND_DIAMOND = 3601;//xxx在xx的直播间送出xxx钻 （送的人和收的人都必须是本家族的）， content:{"send_uid":xxx,"send_nick":"xxx","cid":xxx,"recv_uid":xxx,"recv_nick":"xxx","send_diamond":xxx,"contribution":xxx,"charm":xxx},send_uid发送者uid，send_nick发送者昵称，cid送礼房间id，recv_uid接受者uid，recv_nick接受者昵称，send_diamond发出钻石数,contribution增加的贡献值，charm增加的魅力值
+    IST_RECV_DIAMOND = 3602;//xxx收到xxx钻的礼物（收到的人必须是本家族的，送的人不一定）， content:{"recv_uid":xxx,"recv_nick":"xxx","recv_diamond":xxx,"cid":xxx,"contribution":xxx,"charm":xxx},recv_uid接受者uid，recv_nick接受者昵称，recv_diamond收到钻石数,contribution增加的贡献值，charm增加的魅力值，cid收礼房间id
+    IST_FAMILY_MEMBER_SHOW = 3603;//家族成员开播通知。 content:{"cid":xxx,"uid":xxx} cid开播的房间id，uid开播的uid
+    IST_KTV_POST = 3604;//KTV引导发帖到BBS里。点击进帖子详情页。客户端使用。content:{songName:"', postId:""}
+}
+
+enum LabelTip {
+    GET_CLG = 0;
+    NONGet_CLG = 1;
+    WIN_CLG = 2;
+}
+// 消息的flag，bitmask，需要用1<<EIMMsgFlag
+enum IMMsgFlag {
+    IMF_SYS = 0; // 系统消息
+    IMF_HIDE = 1; // 隐藏消息
+    IMF_NO_FORWARD = 2; // 禁止转发
+    IMF_ROBOT = 3; // 机器人发送
+    IMF_SIGNAL = 4; // 信令消息
+    IMF_TOUSER = 5; // 指定用户
+}
+
+// 从哪进入的频道 与之前rmgr的ERoomEntry一致
+enum SourceEntry {
+    SOURCE_ENTRY_NONE = 0;
+    SE_HOME_ROOM = 1; // 首页房间tab
+    SE_HOME_GAME = 2; // 首页游戏tab  【已废弃】
+    SE_ROOM_LIST = 3; // 房间list
+    SE_GAME_LIST = 4; // 首页游戏列表 【已废弃】
+    SE_GAME_RAND = 5; // 随机游戏房
+    SE_IM = 6; // IM邀请 【已废弃】
+    SE_SHARE = 7; // 分享页 【已废弃】
+    SE_UINFO = 8; // 资料卡 【已废弃】
+    SE_HISTORY = 9; // 历史列表
+    SE_ICON = 10; // 主页的房间icon 【已废弃】
+    SE_FOLLOW = 11; // 关注
+    SE_QUICK_JOIN = 12; // Quick Join
+    SE_STEP_UINFO = 13; // 大资料卡踩房
+    SE_PUSH = 14; //通过push进房 【已废弃】
+    SE_AGGREGATION_NEARBY = 15; //聚合模块 附近的人
+    SE_AGGREGATION_KTV = 16; //聚合模块 KTV
+    SE_AGGREGATION_OPER = 17; //聚合模块 运营
+    SE_FULL_SERVER_PUSH = 18; //全服广播
+    SE_SUB_GROUP = 19; //从二级群进来顶群
+    SE_RADIO_STATION = 20; //小电台
+    SE_GANG_UP = 21; //开黑
+    SE_CHANNEL_NOTICE = 22; //频道通知列表
+    SE_CREATE_CHANNEL = 23; //从创建房间进入
+    SE_CHANNEL_SLIDE = 24; //频道内上滑,3.1
+    SE_SUB_CHANNEL_BUTTON = 25; //运营聚合二级页面下方按钮，3.1
+    SE_QUICK_JOIN_QUIT_BUTTON = 26; //随机游戏房，退出弹窗推荐游戏点击，3.1
+    SE_MY_JOIN_CHANNEL = 27; // 消息列表会话进去
+    SE_SUB_CHANNEL_PAGE = 28; //频道内的二级频道列表页进入
+    SE_RETURN_FROM_GAME = 29; //在频道中进入PK游戏,退出游戏后回来
+    SE_SEARCH_RESULT_CHANNEL = 30; //搜索结果页点击用户进频道 ，3.2版本
+    SE_SEARCH_RESULT_USER = 31; //搜索结果页点击频道进频道，3.2版本
+    SE_TAB_MY_CHANNEL = 32; //我的频道TAB,3.4版本加上
+    SE_TAB_RECOMMEND = 33; //推荐TAB,3.4版本加上
+    SE_TAB_GAME = 34; //游戏TAB,3.4版本加上
+    SE_TAB_TOPIC_SQUARE = 35; //广场TAB,3.4版本加上
+    SE_FRIEND_RECOMMEND = 36; //好友推荐模块，3.4版本加上
+    SE_MY_CHANNEL_POST = 37; //从帖子关联我的频道，3.6版本加上
+    SE_RADIO_TAB = 38; //从电台tab进来。3.6版本
+    SE_GAME_GUIDE = 39; //通过游戏引导进来。3.6版本
+    SE_APP_LAYER = 40; //通过端内浮层进房。3.7版本
+    SE_BBS_POST_AVATAR = 41; //从帖子曝光处点击头像进入。3.8版本
+    SE_OTHER_TAB = 42; //从其他TAB进入。3.8版本
+    SE_SEARCH_RECOMMEND = 43; //从搜索页面的推荐频道进入。3.9版本
+    SE_NEW_USER_GUIDE = 44; //频道列表的新用户引导模块。3.12版本
+    SE_CHANNEL_PARTY = 45; //频道改版。从party页进入。3.11版本
+    SE_NEW_USER_MATCH = 46; //新用户承接模块的随机匹配. 3.11版本
+    SE_PARTY_BACK_TO_CHANNEL = 47; //频道改版。从语音房，回到文字频道。3.11版本
+    SE_OFFICIAL_RECOMMEND = 48; //频道列表的官方推荐模块。3.12版本
+    SE_RANDOM_POPUP = 49; //频道列表的停留15s随机推荐弹窗。3.13版本
+    SE_IM_RECOM_CHANNEL = 50; //im推荐频道入口。3.12补丁
+    SE_CHANNEL_STRATEGY_PUSH = 51; //公告push或点亮提醒。3.13版本
+    SE_PARTYMASTER = 52; //点派对达人头像进入。3.15版本
+    SE_BACK_USER = 53; // 回流用户引导进入频道。3.15
+    SE_PROFILE_MY_CHANNEL = 54; //从个人资料页进入自己房间。3.15
+    SE_PROFILE_OTHER_CHANNEL = 55; //从个人资料页进入他人房间。3.15
+    SE_SCREEN_SHARE = 56; //公屏分享。3.15
+    SE_CHANNEL_SETTING = 57; //房间设置页。3.15
+    SE_CHANNEL_MORE_PAGE = 58; //顶级频道分发二级列表。3.15
+    SE_SEARCH_PAGE = 59; //搜索页。3.15
+    SE_SAME_CITY_MODULE = 60; //通过同城模块进入房间。3.16
+    SE_SIDE_LIST_RECOM = 61; //频道内侧边列表推荐房间.3.16
+    SE_GAME_GROUP = 62; //游戏群组进频道.3.16
+    SE_H5 = 63; // 通过H5页面进入
+    SE_PARTY_SECOND_PAGE = 64; // 首页party入口二级页面进入.3.19
+
+}
+
+// 账号来源，需要和账号系统保持一致
+enum AccountSource {
+    ACCOUNT_SOURCE_NONE = 0;
+    ACCOUNT_SOURCE_FACEBOOK = 5;
+    ACCOUNT_SOURCE_GOOGLE = 6;
+    ACCOUNT_SOURCE_LINE = 7;
+    ACCOUNT_SOURCE_VK = 8;
+    ACCOUNT_SOURCE_ZALO = 9;
+    ACCOUNT_SOURCE_KIT = 10;
+    ACCOUNT_SOURCE_APPLE = 11;
+    ACCOUNT_SOURCE_IMO = 12;
+    ACCOUNT_SOURCE_NOIZZ = 13;
+    ACCOUNT_SOURCE_PHONE = 21;
+}
+
+
+// 资源类型
+enum ResType {
+    RES_TYPE_NONE = 0;
+    RES_TYPE_PNG = 1;
+
+    RES_TYPE_SVGA = 100;
+}
+
+// 一个消息由多个片段组成，比如包含文字、图片等
+message IMMsgSection {
+    int32 type = 1; // see IMSecType
+    string color = 2; // 颜色，缺省黑色
+    string content = 3; // 消息内容
+    string extention = 4; // 扩展内容
+    string jump = 5; // 点击的跳转行为
+    string trans = 6; // 用于给客户端填充透传信息，服务器不关注
+}
+
+// 消息定义
+message IMMsgItem {
+    string msgid = 1;
+    int64 flags = 2; // see IMMsgFlag, bitmask
+    int64 ts = 3; // 时间戳，unix timestamp，秒
+    UserInfo from_uinfo = 4;
+    int32 role = 5; // 发送者角色，因为有游客存在，为了避免大量没有意义的查询，每个消息都把当时的角色带下去
+    CInfo cinfo = 6; // 消息对应的群
+    repeated IMMsgSection sections = 7; // 消息内容
+    int64 seqid = 8; //seqid "seqid":int64 表示唯一id
+    string cseq = 9; // 客户端生成的sequence id，客户端自用
+    repeated int64 to_uids = 10; // 接收者UID数组,(数组为空表示全员接收, 非空需要判断在数组内才显示)
+    UserMark from_umark = 11; // 发送者的勋章特权等信息,(旧版客户端是放在section.trans里透传的)
+    RobotIns robotIns = 12; // 机器人信息
+}
+
+// **************频道基本信息********************
+
+message ChannelTag {
+    int32 tag_type = 1; // see ChannelTagType
+    string name = 2; // 名称，多语言服务端支持
+}
+
+// 成员信息
+message ChannelMember {
+    int64 uid = 1;
+    int32 role = 2; // 角色
+    bool online = 3; //用户在线状态
+    // 以下信息游客没有
+
+    int32 msg_receive_mode = 9; // 消息接受模式, 见MemberMsgRecvMode
+    int64 inviter = 10; // 邀请人
+    int32 source = 11; // 进群途径，二维码，分享等
+    int64 time = 12; // 进群时间
+    string remark = 13; // 备注名，如果为空则用昵称
+}
+
+// 频道靓号信息
+message CCuteInfo {
+    string vcid = 1; // 用来显示给用户的ID
+}
+
+// 频道所属国家和大区等信息
+message CInterregion {
+    string  region = 1; //频道所属大区 大写,如 IN、SG
+                        // https://git.yy.com/name/interregion/blob/master/region.go
+    string  country_code = 2; //频道所属国家 大写两位国家码 IN、SG、ID、FR、AE、US、BR、RU
+}
+
+// 频道基本配置信息
+message CInfo {
+    // 基本信息，cid/creator是创建就固定的，pid有可能变化的
+    string cid = 1; // channel id
+    string pid = 2; // 父频道ID，如果为空表示这个是顶级频道
+    int64 creator = 3; // 创建者，0表示系统创建
+    int64 owner = 4; // 拥有者
+    string name = 5; // 频道名称
+    string bulletin = 6; // 公告
+    string lang = 7; // 频道内的语言
+    int64 created_time = 10; // 创建时间，unix时间戳，单位为秒
+    CCuteInfo ccute_info = 11; // 频道靓号信息
+    int32 channel_type = 12; // 频道类型 see ChannelType
+    int64 update_time = 13; //更新时间，unix时间戳，单位为秒
+
+    // 频道状态信息
+    bool is_private = 20; // 是否是私密，加个is_避免和部分语言保留关键字冲突
+    bool offical = 21; // 是否是官方频道
+    string password = 22; // 明文密码，管理员可见
+
+    int32 speak_mode = 30; // 发言模式 see ChannelSpeakMode
+    int32 enter_mode = 31; // 进入频道模式, see ChannelEnterMode
+    int32 join_mode = 32; // 加群模式, see ChannelJoinMode
+    int32 voice_mode = 33; // 成员语音聊天模式, see ChannelVoiceMode
+    int32 channel_voice_enter_mode = 34; //成员语音聊天权限, see ChannelVoiceEnterMode
+
+    int32 guest_speak_limit = 35; //游客发言限制, see GuestSpeakLimitBitmask
+
+    repeated int32 tag_types = 40; // 频道的标签id列表，由boss平台配置。
+    int32 current_bg_themeid = 41; // 当前背景图片样式的ID
+    repeated net.name.base.tag.Tag tags = 42; // bbs需求引入的标签，新版本用这个替换掉tag_types
+    string avatar = 43; //频道改版。频道头像
+    int32 version = 44; //版本，客户端、服务端做兼容用。第一个频道版本默认为0。  4.x频道改版的版本，设置1。
+
+    int64 disband_expire_second = 50; // 封禁截至时间，单位为秒。math.MaxInt64表示永久封禁
+    int64 not_recommend_expire_second = 51; // 不推荐截至时间，单位为秒。math.MaxInt64表示永久不推荐
+
+    bool is_city = 60; // true-同城群
+    string location_tude = 61; // 经纬度，格式："经度_纬度"
+    string country = 62; // 国家名（本地语言）
+    string city = 63; // 城市名（本地语言）
+    string location = 64; // 具体位置名（小区名），先存起来
+
+    int32 post_sync_role = 65; //帖子同步的权限控制 ，见PostSyncRole
+    int32 post_sync_content = 66; //帖子同步的内容限制 ，见PostSyncContent
+    net.name.base.tag.Tag post_sync_tag = 67; // 当post_sync_content值为仅限在某个tag的帖子时，这个字段代表对应的tag
+
+    int32 lock_enter_mode = 70; //当频道上锁时进入频道的模式 see ChannelLockEnterMode
+    int32 party_bg = 71; //party页的背景
+
+    string source = 80; // "" or "hago.channel" hago频道; "hago.game" hago游戏; "hago.family" hago家族
+    CInterregion inter_region = 81; //频道所属大区信息
+    bool close_recom = 82; // 是否关闭其他房间推荐本房间 默认为不关闭,允许其他房间推荐
+    int32 master_play_bgm = 83; //管理员播放背景音乐配置, 见ChannelMasterPalyBgmMode
+
+    // 家族用
+    int64 join_pay_level = 84; //加入家族付费等级门槛
+    int64 join_active_time = 85; //加入家族活跃时间门槛（小时）
+
+    RoleLimit role_limit = 90;//暂时给家族用
+}
+
+//RoleLimit 成员上限
+message RoleLimit{
+    int64 master = 1;
+    int64 member = 2;
+}
+
+message CDynamic {
+    string cid = 1;
+    int32 onlines = 2; // 在线人数
+    PluginInfo current_plugin_info = 3; // 当前使用的插件信息
+}
+
+// 座位状态，用的是bitsmap。0表示否，1表示是。需要进行移位，比如(1<<ESSLocked)
+enum SeatStatus {
+    SS_LOCKED = 0; // 是否锁定
+    SS_READY = 1; // 是否ready
+    SS_CLOSE_MIC_BY_SELF = 2; // 关麦
+    SS_CLOSE_MIC_BY_OWNER = 3; // 禁麦
+}
+// 麦上用户信息
+message SeatUser {
+    int32 seat = 1; // 座位编号，since 1
+    int64 uid = 2; // 0表示没有人
+    int64 status = 3; // 座位状态，bitsmap，see SeatStatus
+}
+
+// 媒体token信息
+message MediaToken {
+    bytes token = 1; // 媒体token
+    int64 expire = 2; // 有效时长, 单位秒
+}
+
+// 插件信息，频道不关注插件内容，各个插件玩法自行填充
+message PluginInfo {
+    int32 type = 1; // see PluginType
+    string pid = 2; // plugin id. ID是java关键词，加个p前缀
+    int64 ver = 3; // 游戏版本
+    int64 templ = 4; // 游戏模板
+    string ctx = 10; // 游戏控制信息
+    string ext = 11; // 游戏扩展信息
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// 个人资料
+
+enum OsType {
+    UNKNOWN = 0;
+    ANDROID = 1; // 安卓
+    IOS = 2; // ios
+    BOTH = 3; // both
+}
+
+// 性别
+enum ESexType {
+    ESTFemale = 0; // 女性
+    ESTMale = 1; // 男性
+    ESTUnknown = 3; // 未知性别
+}
+
+message UserInfo {
+    // common字段
+    int64 uid = 1;
+    int64 vid = 2;
+    int64 sex = 3; // 性别, 参考: ESexType
+    string nick = 4; // 昵称
+    string avatar = 5; // 头像
+    string birthday = 6; // 生日
+    string sign = 7; // 签名
+    string last_login_location = 8; // 上一次登录地址
+    string location_tude = 9; // 登录经纬度
+    string hometown = 10; // 家乡
+    string job = 11; // 职业
+    string device = 12; // 设备id
+    string os_type = 13; // 系统类型: "android", "ios"
+    string app_ver = 14; // app版本, "21000"
+    string app_name = 15; // app名称, hago:默认空"", ios_yoco:"yoco", android_ludo:"com.free.game.ludo"
+    string country = 16; // 国家码(小写字母 id:印尼，...)
+    string imo = 17; // imo openid
+    int64 vlv = 18; // 靓号等级
+    int64 ovid = 19; // 原来的ovid,ovid==0,vid非靓号
+    int32 account_source = 20; // see AccountSource
+    string region = 21; //所属大区 大写,如 IN、SG, see https://git.yy.com/name/interregion/blob/master/region.go
+
+    int64 davatar = 101; // 是否为默认头像, 0:无, 1:默认头像
+    int64 hide_location = 102; // 0:不隐藏, 1:隐藏
+    int64 atype = 103; // 1:普通用户, 2:游客
+    int64 hide_recomm = 104; // 0:推荐, 1:不推荐
+    int64 update_type = 105; // 1:缺省数据, 0:客户端设置数据
+    int64 fix = 106; // 1:强制修复 insert, 0:正常更新 upsert
+    int64 hn = 107; // 在附近的人隐藏, 0:不隐藏, 1:隐藏
+    int64 ver = 108; // 版本号, 0:最小版本号
+    int64 on_micro = 109; // 用户上麦时，不通知关注我的人 0:通知, 1:不通知
+
+    int64 last_last_login_time = 110; // 上一次最近一次登录时间
+
+    // extra字段
+    int64 first_login_time = 201; // 第一次登陆时间戳
+    int64 last_login_time = 202; // 最近一次登陆时间戳
+
+    map<string, string> ext = 9999; // 扩展信息，查询用户的接口不会返回这个信息的，仅用于业务根据场景填充各自的信息，详细定义见extension.md
+}
+
+message UserMark {
+    repeated int32 medal_id = 1; // 勋章ID
+    int32 chat_bubble_id = 2; // 气泡ID
+    int32 nick_color_id = 3; // 昵称颜色ID
+}
+
+message RobotIns {
+    string insId = 1; // 实例ID
+    string cid = 2;
+    string tid = 3;
+    string ttype = 4;
+    string name = 5; // 机器名字
+    string desc = 6; // 详细描述
+    string avatar = 7; // 头像
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// 算法推荐埋点相关
+
+// 请求推荐算法的接口Response里，会有 `string token` 字段，内容是JSON，定义如下
+message AlgoToken {
+    string dispatch_id = 1; // 每请求推荐服务或者业务后台，返回结果并会产生一个uniq的请求id。用以拼接上报事件。
+    string strategy = 2;    // 推荐策略路径。可能为空。
+}
+
+// 版本范围
+message VerRange {
+    string min = 1;     // 格式30102，缺省包含min，如果不包含前面用小括号，比如(30102
+    string max = 2;     // 同min，如果是空，表示不限制最高版本
+}
+
+// 时间范围
+message TimeRange {
+    int64 begin = 1;    // unix timestamp, seconds，包含begin
+    int64 end = 2;      // unix timestamp, seconds，包含end
+}
+
+// 活动入口
+message ActivityEntry {
+    int32 res_type = 1; // see ResType
+    string res_url = 2; // 资源的链接
+    string jump = 3;    // 点击的跳转链接
+
+    VerRange and = 10;  // Android的生效版本范围，如果是空，表示不限制版本
+    VerRange ios = 11;  // iOS的生效版本范围，如果是空，表示不限制版本
+    string compat_png = 12;     // 如果当前版本不认识res_type，则用这个字段指向的资源，必须是png，如果该字段为空，则客户端不要显示这个入口
+    string ab_key = 13;         // 如果这个字段非空，表示这个是一个要做ab的入口，需要客户端先请求一次ab再决定是否展示
+    TimeRange valid_time = 14;  // 如果这个字段非空，表示这个入口有生效时间
+    bool is_open = 15;          // 是否显示该活动入口
+}

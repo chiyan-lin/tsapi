@@ -1,0 +1,2065 @@
+syntax = "proto3";
+
+// sname net.name.channel.srv.mgr
+
+package net.name.channel.srv.mgr;
+
+option go_package = "pbchannel";
+option objc_class_prefix = "Channel";
+
+// import "git.yy.com/name/proto-common/common.proto";
+// import "git.yy.com/name/proto-biz/biz.proto";
+
+// 返回码
+enum ECode {
+    OK = 0;
+
+    // 多种场景可能触发的错误
+    RATELIMIT = 1000; // 发送消息、修改资料可能触发
+    CHANNEL_BANNED = 1001; // 频道被封禁了, Enter/Join 等触发
+    CHANNEL_NOT_EXISTS = 1002; // 频道不存在, 各种行为都有可能触发
+    NO_PERMIT = 1003; // 没有权限
+    NO_ARROW = 1004; // 不允许操作
+
+    // 进房可能触发的错误
+    LOCKED = 1100; // 上锁
+    PRIVATE = 1101; // 私密房
+    PASSWORD_ERROR = 1102; // 密码错误
+    KICK_OFF_FROZE = 1103; // 踢出房间冻结
+    ONLINE_LIMIT = 1104; // 在线人数达到上限
+    PASSWORD_TRY_LIMIT = 1105; //  密码尝试过于频繁
+
+    NOT_READY = 1106;       // 有人没准备，start game的时候会返回这个错误
+    WRONG_STATE = 1107;     // 错误的时机。比如游戏已经开始或者没切换游戏模式就点击开始游戏
+    GAME_START = 1108;      //游戏已经开始
+
+    NOT_MATCH_CHANNEL = 1109;// 没有符合条件的频道。随机匹配可能返回
+
+    CHANNEL_All_DISBAND = 1110;//进频道时，频道主的频道都被封禁了。
+    CHANNEL_DISBAND_RETRY_OTHER = 1111;//进频道时，频道主的频道被封禁了，这时res里会返回没有被封禁的频道id。
+
+
+    // 创建频道/修改频道资料可能触发的错误
+    SENSITIVE = 1200; // 敏感词，修改频道资料可能触发
+    CHANNEL_NUM_LIMIT = 1201; // 频道数限制， 创建频道触发
+    CHANNEL_RENAME_LIMIT = 1202; // 频道名称修改限制
+    CHANNEL_DELTOP_FORBIDDEN = 1203; // 删除顶级频道禁止
+    CHANNEL_CREATE_SENSITIVE_LIMIT = 1204; // 暂时没有用。。。。频道创建包含敏感词次数超限
+    CHANNEL_MODIFY_MONEY_NOT_ALLOWED = 1205; // 修改私密、锁房等操作营收不同意，客户端使用返回的errMsg
+    STILL_OTHERS = 1012; // 还有人，不能解散频道, Disband 触发
+
+    // 成员相关错误
+    ROLE_NUM_LIMIT = 1300; // 设置角色的数量达到上限, SetRole/Join触发
+    JOIN_NUM_LIMIT = 1301; // 加入的频道数达到上限, SetRole/Join触发
+    JOIN_BAN_FOREVER = 1302; // 永远不接受申请, SetRole/Join触发
+    STILL_IN_CHANNEL = 1303; // 在频道里面, join触发
+    ALREADY_CHANGED = 1304; // 已进行过操作或其他人操作过, 成员相关操作都有
+    NOT_IN_CHANNEL = 1305; // 不在频道里面
+    OTHER_REJECTED = 1306; //被其他人拒绝, 申请相关
+
+    // 消息发送相关错误
+    SENDMSG_FORBID = 1400; // 当前身份禁止发言, SendMsg 触发
+    SENDMSG_BANNED = 1401; // 已经被禁言, SendMsg 触发
+    SENDMSG_GUEST_LIMIT = 1402; // 游客总的发言频率限制
+
+    //其他
+    SEAT_LOCKED = 1500; //座位已锁定
+    SIT_DOWN_BUSY = 1501; //上座失败，其他人抢先一步上座
+    SEAT_FULL = 1502; //座位已满
+    ALREADY_ON_SEAT = 1503; //已经在座位上
+    NOT_ON_SEAT = 1504; //不在座位上
+    OTHER_PEOPLE_ON_SEAT = 1505; //有其他人在座位上
+    ON_OTHER_SEAT = 1506; //已经在其他座位上
+    ONLY_FIRST_SEAT = 1507;//只能坐在1号位上
+
+    QUICK_MATCH_FAIL = 1510;     // 快速匹配游戏失败
+    THEME_EXPIRE = 1511;     // 主题过期
+
+    //邀请相关
+    INVITE_EXPIRE = 1701; //邀请过期
+    INVITE_MAX_LIMIT = 1702; //邀请点击人数达到上限
+
+    NOT_SUPPORT_LOAD_PLUGIN = 1800; //频道改版。不支持切换。 顶级切了文字后不能切语音，子频道切了语音后不能切文字。
+    NOT_SUPPORT_TOP_CHANNEL = 1801;//频道改版。一些请求只有针对顶级频道才能处理
+
+    GLOBAL_PLUGIN_NOT_ARROW = 1802;//进频道时，不允许跨大区进入某些玩法
+
+    ALREADY_HAS_FAMILY = 1810;//3.18 用户已经有了一个家族,创建家族，加入家族等
+    FAMILY_JOIN_APPLY_NOT_CONDITION = 1813;//3.18 申请加入家族，达不到门槛
+    FAMILY_CREATE_NOT_PERMIT = 1814;//3.18 没有创建家族的权限
+
+}
+
+enum EBottomMessage {
+    PlayNum = 0;   //人数
+    Distance = 1;  //距离
+
+}
+
+enum EDisplayUser {
+    All = 0;   //全部
+    NewChannleUser = 1;  //频道新用户
+    OldChannelUser = 2;  //频道老用户
+}
+
+enum EModuleAttribute {
+    Mixing = 0;   //混合模式
+    Chat = 1;  //语音频道
+    Base = 2;  //基础频道
+}
+
+enum EOSType {
+    AllOS = 0;                //全部系统可以见
+    IOS = 1;                //IOS系统可见
+    Android = 2;            //Android系统可见
+}
+
+enum EStyle {
+    NoStyle = 0;
+    StyleOne = 1;
+    StyleTwo= 2;
+    StyleThree = 3;
+}
+
+//ESpecialModuleType ...
+enum ESpecialModuleType {
+    NoType = 0;
+    QuickJoin = 1; //QuickJoin
+    Charisma = 2;  //魅力卡片
+    FollowNotice = 3; //关注提醒
+    OtherApp = 4; //导流其他APP的
+    PlaceHolder = 5; //站位符模块，没有实质内容，只是为了方便客户端展现
+}
+
+/**
+    3.2
+*/
+//ECategory 内容源分类
+enum ECategory {
+    ERecommend = 0;    // 推荐
+
+    ECustom = 1;       // 自定义，可以是只由运营人员添加，也可以是用户添加
+
+    EGame = 2;         // 所有类型的游戏房
+
+    EKTV = 3;          // KTV 游戏
+    EMicup = 4;        // 音遇
+    EShuiShiWoDi = 5;  // 谁是卧底
+    ENiHuaWoCai = 6;   // 你画我猜
+    EDaYingJia = 7;    // 大赢家
+    EPickMe = 8;       // 相亲
+
+    EBase = 9;         // 文字房
+    ENonBase = 10;      // 非文字房
+    EChat = 11;        // 普通语音房
+    EBaijiale = 12;    // 百家乐
+    ERadio = 13;    // 电台
+
+    ENearby = 30;      // 附近的房间
+    ESameCity = 31;    // 同城
+    EFriend = 32;      // 好友关注，但本人未关注的模块
+
+    EMyOwnChannel = 33;  // 我的频道
+}
+
+
+// 创建
+message CreateReq {
+    biz.CInfo cinfo = 1;
+    // 数据上报用，创建频道的入口点
+    // 1 语音房首页，2 频道列表，3 运营标签标签 4.频道改版。自动创建二级语音房 5.当没有任何频道的人，创建玩法频道时，自动给他创建一个顶级频道
+    int32 entry_point = 10;
+    int64 card_id = 11; //哪个运营标签创建
+    biz.PluginInfo plugin_info = 12; // 频道改版。创建时传了玩法，则自动切换到该玩法
+}
+message CreateRes {
+    common.Result result = 1;
+    biz.CInfo cinfo = 10;
+}
+
+// 解散
+message DisbandReq {
+    string cid = 1;
+}
+message DisbandRes {
+    common.Result result = 1;
+}
+
+// 修改
+message ModifyReq {
+    biz.CInfo cinfo = 1;
+    // 字段非默认值时表示设置了cinfo里面的对应字段
+    biz.CInfo set_fields = 2;
+    bool push_bulletin = 3; //3.13 发送公告push
+}
+message ModifyRes {
+    common.Result result = 1;
+    biz.CInfo cinfo = 10;
+    string tag_id = 11;// 当频道主修改，且频道没有关联BBS tag，且频道名称包含某个tag时，会推荐一个tag。不符合条件就没有值。
+}
+
+// 获取频道信息
+message GetCInfoReq {
+    string cid = 1;
+    biz.CInfo selector = 2; // 过滤器
+    bool ret_top_online = 3; //频道改版。true获取对应的顶级频道在线人数
+    bool ret_top_party_bg = 4; //3.14 频道改版二期。true获取对应的顶级频道背景
+}
+message GetCInfoRes {
+    common.Result result = 1;
+    biz.CInfo cinfo = 10;
+    int32 top_online = 11; //频道改版。顶级频道在线人数。ret_top_online为true返回。
+    Background party_background = 12; //3.14 频道改版二期。ret_top_party_bg为true返回顶级频道party背景
+}
+
+// 获取顶级&子频道列表信息
+// 在顶级频道获取的为当前频道和子频道的列表
+// 在子频道获取的为父频道和父频道的子频道列表
+message GetCInfoListReq {
+    string cid = 1;
+    string pid = 2;
+    biz.CInfo selector = 3; // 过滤器
+}
+message GetCInfoListRes {
+    common.Result result = 1;
+    repeated biz.CInfo cinfos = 10;
+    repeated biz.CDynamic dynamics = 11;
+    Background party_background = 13; //3.14 顶级频道party背景
+}
+
+// 获取我的顶级频道信息
+// selector未填写时，返回信息不做过滤
+// 限制：每个用户只能有一个顶级频道
+message GetMyTopCInfoReq{
+    biz.CInfo selector = 1; // 过滤器
+}
+message GetMyTopCInfoRes{
+    common.Result result = 1;
+    biz.CInfo cinfo = 10;
+}
+
+// 搜索功能
+message SearchReq {
+    int32 type = 1;
+    string query = 2;
+    common.Page page = 3;
+    biz.CInfo selector = 4; // 过滤器
+}
+message SearchRes {
+    common.Result result = 1;
+    common.Page page = 2; // 分页控制
+    repeated biz.CInfo cinfos = 10;
+}
+
+// 历史频道信息
+message HistoryChannel {
+    string  cid = 1;         // cid
+    int64   owner = 2;      // owner uid
+    string  url = 3;        // owner avatar
+    string  nick = 5;       // owner nick
+    string  name = 6;       // room name
+    bool    owner_online = 7;     // 房主是否在线
+    biz.PluginInfo plugin_info = 8; // 当前插件信息
+    int64 onlines = 9; // 房间内人数
+    string avatar = 10; //频道改版。频道封面
+    int32 version = 11; //频道改版。版本
+    int32 top_onlines = 12; // 频道改版。顶级频道在线人数。ret_top_onlines传true会返回
+}
+
+// 获取历史频道信息
+message GetHistoryChannelReq {
+    repeated string cids = 2;
+    bool ret_top_onlines = 3;//true会返回top_onlines
+}
+message GetHistoryChannelRes {
+    common.Result result = 1;
+    repeated HistoryChannel history_channels = 10;
+}
+
+// 运营操作
+message OperateReq {
+    string cid = 1;
+    int64 disband = 2; // 封禁该群的时间，math.MaxInt64表示永久封禁
+}
+message OperateRes {
+    common.Result result = 1;
+}
+
+// 拉取我加入了的群
+message GetMyJoinedReq {
+    biz.CInfo selector = 1; // 过滤器
+}
+message GetMyJoinedRes {
+    common.Result result = 1;
+    repeated biz.CInfo cinfos = 10; //
+    message ChannelMemberAndCID {
+        string cid = 1;
+        biz.ChannelMember member = 2;
+        biz.PluginInfo plugin_info = 3; // 频道改版。当前的玩法信息
+    }
+    repeated ChannelMemberAndCID channel_members = 11; //该用户在对应频道的成员信息，这里只返回免打扰字段
+}
+
+// 拉取user加入了的群
+message GetUserJoinedReq {
+    biz.CInfo selector = 1; // 过滤器
+    int64 uid = 2; //uid
+}
+message GetUserJoinedRes {
+    common.Result result = 1;
+    repeated biz.CInfo cinfos = 10; //
+    message ChannelMemberAndCID {
+        string cid = 1;
+        biz.ChannelMember member = 2;
+        biz.PluginInfo plugin_info = 3; // 频道改版。当前的玩法信息
+    }
+    repeated ChannelMemberAndCID channel_members = 11; //该用户在对应频道的成员信息，这里只返回免打扰字段
+}
+
+// 申请加群
+message JoinApplyReq {
+    string cid = 1;
+    string nick = 8; // 发送者昵称
+    string avatar = 9; // 发送者头像
+    string reason = 2;
+}
+
+message JoinApplyRes {
+    common.Result result = 1;
+    string apply_id = 10; // 服务端生成的唯一区分此次申请的id
+    biz.ChannelMember member = 11;
+    int64 current_join_pay_level = 20; //加入家族门槛不满足时返回当前付费等级
+    int64 current_join_active_time = 21; //加入家族门槛不满足时返回当前活跃时长(小时)
+}
+
+// 申请批阅。notify需要填cid和uid
+message JoinApproveReq {
+    string apply_id = 1;
+    bool accept = 4; // true表示同意
+    biz.ChannelMember member = 5; // 如果是同意，可以同时赋予角色等信息
+    bool reject_forever = 6; // 不再接收这个人的请求
+    string reason = 7; // 如果是拒绝可以填原因
+}
+message JoinApproveRes {
+    common.Result result = 1;
+    biz.ChannelMember member = 10;
+}
+
+// 设置角色，设置为成员类似于邀请进群
+message SetRoleReq {
+    string cid = 1;
+    int64 uid = 2;
+    int32 role = 3; //角色见ChannelRoleType
+}
+message SetRoleRes {
+    common.Result result = 1;
+    string cid = 2;
+    int64 uid = 3; // 被设置的uid
+    string set_id = 10; //去掉了waiting_accept, set_id不为空的时候表示需要应答，和waiting_accept这个字段功能重复
+}
+
+message BatchSetRoleReq{
+    repeated SetRoleReq set_role_reqs = 1;
+}
+message BatchSetRoleRes{
+    common.Result result = 1; // 为了兼容设计，这里不会返回失败，具体的失败检查每个返回
+    repeated SetRoleRes set_role_ress = 10; // 和请求一一对应返回
+}
+
+// 接受角色，只有游客变成非游客的时候才需要应答
+message AcceptRoleReq {
+    string set_id = 1;
+    bool accept = 2; // true表示同意
+}
+message AcceptRoleRes {
+    common.Result result = 1;
+    biz.ChannelMember member = 10;
+}
+
+// 禁言
+message BannedReq {
+    string cid = 1;
+    int64 uid = 2;
+    int64 time = 3; // 禁言时长，单位min
+    bool only_this = 4; // true表示只对cid生效，否则对cid所属的频道组生效
+    bool banned = 5; // true:禁言 false:解禁
+}
+message BannedRes {
+    common.Result result = 1;
+}
+
+// 禁言状态
+message BannedStatus {
+    int64 uid = 1;
+    int64 BanTime = 2; // 解禁时间戳 单位:秒, 0:没有禁言, >0:禁言中
+    int64 BanLeftTime = 3; // >0表示解禁剩余秒数
+}
+
+// 查询禁言状态
+message GetBannedStatusReq {
+    string cid = 1;
+    repeated int64 uids = 2; // 上限50个uid
+}
+message GetBannedStatusRes {
+    common.Result result = 1;
+    repeated BannedStatus list = 2;
+}
+
+// 踢出频道
+message KickOffReq {
+    string cid = 1;
+    int64 uid = 2;
+    string reason = 3;
+    bool only_this = 4; // true表示只对cid生效，否则对cid所属的频道组生效
+}
+message KickOffRes {
+    common.Result result = 1;
+}
+
+// 设置备注名
+message SetRemarkReq {
+    string cid = 1;
+    string remark = 2;
+}
+message SetRemarkRes {
+    common.Result result = 1;
+}
+
+// 拉取成员列表
+message GetMemberListReq {
+    string cid = 1;
+    int64  ver = 2;
+    common.Page page = 3; // 分页控制
+    biz.ChannelMember selector = 4; // 返回值过滤
+    int32 role = 5; // 为0表示查全部members， 其他角色见ChannelRoleType
+}
+message GetMemberListRes {
+    common.Result result = 1;
+    common.Page page = 2;
+    int64 ver = 3;
+    repeated biz.ChannelMember members = 10;
+}
+
+// 拉取特定uid的成员信息
+message GetMembersReq {
+    string cid = 1;
+    repeated int64 uids = 2; // 不要超过50个，会截断
+}
+message GetMembersRes {
+    common.Result result = 1;
+    repeated biz.ChannelMember members = 10;
+}
+//上报到海度的信息
+message HiidoInfo {
+    string alg = 1; //算法token。3.15重新使用用
+    string sid = 2; //session id
+    string tab_id = 3;
+}
+message MatchInfo {
+    bool been_ktv = 1; //曾经进过ktv房传true，否则false
+    int64 song_id = 2; //曲库id，音遇匹配使用
+    bool is_ctype = 3; //iOS  2.5.14版本 C类用户
+    repeated string game_ids = 4; //新用户模块，游戏分类随机匹配传的游戏id
+}
+
+//BBS 发帖的用户
+message BBSUser {
+    int64 uid = 1;
+    string post_id = 2;
+}
+
+message EnterUserInfo {
+    string url = 1; // 头像，用来广播，减少客户端请求
+    string nick = 2; // 昵称，用来广播，减少客户端请求
+    int64 icon_frame = 3; //头像框，用来广播，减少客户端请求头像框
+    int32 sex = 4;//性别，用来广播,减少客户端请求
+    int64 uid = 5; //uid user_id
+    repeated int64 radio_uids = 6; //小电台对应的用户，要发单播给这些人(UriRadioStationNotify)
+    BBSUser bbs_user = 7;   //从bbs帖子页过来，发帖人的信息，需要公屏发送消息
+}
+message BanInfo {
+    int64 reason = 1;               // see biz.BanReason
+    int64 banned = 2;               // 封禁截至时间，单位为秒。math.MaxInt64表示永久封禁
+}
+message GameContext{
+    bool start = 1;  // true 游戏已经开始，开始游戏会有下面的url和ctx
+    string url = 2;// 进入游戏的URL，
+    string ctx = 3;// 进入游戏需要的额外信息
+}
+// 进入频道
+message EnterReq {
+    string cid = 1; // 频道ID，随机匹配不填
+    int32 source = 2; // 来源，see biz.SourceEntry
+    biz.CInfo selector = 3; // 游客会返回CInfo信息，客户端决定要哪些信息
+    string password = 10; // 通过输入密码进入的，填这个
+    string enter_token = 11; // 通过邀请进入加密房间的，填这个
+    MobileDeviceSpec device_spec = 14; // 手机规格，决定可用的转码档位
+    string game_id = 15; // 随机匹配的时候填写玩法ID
+    EnterUserInfo user_info = 16;// 用来广播，减少客户端请求
+    bool rejoin = 30; // 是否是重连
+    HiidoInfo hiido_info = 31; //上报到海度的信息
+    MatchInfo match_info = 33; //匹配的额外信息
+    int32 vip = 34; //vip类型 ，1表示特权
+    int64 card_id = 35; //从某个运营标签下进入频道
+}
+message EnterRes {
+    common.Result result = 1;
+    biz.CInfo cinfo = 10;
+    repeated biz.SeatUser seat_users = 11; // 麦上用户列表
+    biz.MediaToken media_token = 12;
+    int32 onlines = 13; // 当前在线人数
+    TranscodeList transcode_options = 14; // 流管理：频道里可以有多条转码流。这里返回转码档位可选项，由手机规格决定
+    TranscodeList transcode_list = 15; // 当前频道内，正在生效的视频流信息。客户端确定用某个转码档位推流之后，上报更新
+    biz.PluginInfo plugin_info = 20; // 当前的玩法信息
+    Background background = 40; //背景
+    BanInfo ban_info = 41;    // 封禁情况，只有频道主才会返回这个信息
+    biz.ChannelMember member = 50; //请求者对应的角色
+    repeated int64 master_uids = 51; //服务端用。给服务端兼容使用，管理员uid
+    GameContext game_ctx = 52; //当游戏在进行中会附带的信息
+    string disband_try_cid = 53; // 频道主进频道时，频道被封禁了，这时res里会返回没有被封禁的频道id（如有）。
+    string tag_id = 54;// 当频道主进房，且频道没有关联BBS tag，且频道名称包含某个tag时，会推荐一个tag。不符合条件就没有值。
+    bool old = 60;      // 是否是旧的语音房
+    int32 top_onlines = 61; // 频道改版。顶级频道在线人数
+    bool upgrade = 62; //频道改版。本次进频道的请求，是否升级了频道
+    int64 bg_music_uid = 63; //当前播放背景音乐的uid，为0就没有人播放
+}
+message MobileDeviceSpec {
+    string model = 1;  // 手机型号
+    string android_version = 2;  // 安卓版本
+    string cpu = 3;  // CPU 型号
+    string gpu = 4;  // GPU 型号
+    int32 ram_size_mb = 5;  // 内存大小，单位MB
+}
+message TranscodeList {
+    repeated TranscodeInfo transcode_info = 1; // 转码配置信息
+}
+enum TranscodeMode {  // 转码模式（即档位），值越小，越流畅
+    TRANSCODE_MODE_LD = 0;  // 低清
+    TRANSCODE_MODE_SD = 1;  // 标清
+    TRANSCODE_MODE_HD = 2;  // 高清
+}
+message TranscodeInfo {
+    TranscodeMode transcode_mode = 1; // 转码模式（即档位）
+    string stream_id = 2;    // 转码流ID，目前规则为 `频道ID` + `_` + `档位ID` ，客户端用来推流/播转码流
+    TranscodeParameter transcode_param = 3; // 转码附加信息，目前没有用，写在这里为了完备性
+}
+message TranscodeParameter {
+    int32 fps = 1;                  // 视频帧率
+    int32 video_bitrate_kbps = 2;   // 视频比特率，单位kbps
+    int32 height = 3;               // 视频高度
+    int32 width = 4;                // 视频宽度
+}
+
+// 离开频道
+message LeaveReq {
+    string cid = 1;
+}
+message LeaveRes {
+    common.Result result = 1;
+    int64 join_count = 10; //针对主播结束后展示。本场直播经过房间的人次
+    int32 show_time = 11; //针对主播结束后展示。本场直播时长（秒）
+}
+
+// 更新媒体token
+message GetMediaTokenReq {
+    string cid = 1;
+    int64 uid = 2; //用户uid
+}
+message GetMediaTokenRes {
+    common.Result result = 1;
+    biz.MediaToken media_token = 10;
+}
+
+// 拉取在线列表
+message GetOnlinesReq {
+    string cid = 1;
+    common.Page page = 2;
+}
+message GetOnlinesRes {
+    common.Result result = 1;
+    common.Page page = 2;
+    repeated int64 uids = 10;
+    repeated int64 vip_uids = 11; //特权用户uid
+    repeated WearingInfo uid_wears = 12;  // 用户的穿戴信息，例如勋章
+}
+
+message WearingInfo {
+    int64 uid = 1;
+    repeated int32 medal_ids = 2; //勋章IDs
+}
+
+// 发送消息
+message SendMsgReq {
+    int64 to_uid = 1; // 目标UID
+    string to_cid = 2; // 目标群组，to_uid/to_cid必须填一个，也只能填一个
+    string cseq = 3; // 客户端生成的sequence id，客户端自用
+    repeated biz.IMMsgSection sections = 4; // 消息内容
+    string nick = 5; // 发送者昵称
+    string avatar = 6; // 发送者头像
+    repeated int64 to_uids = 7; // 目标UID数组
+    string source = 8; // 消息来源，活动需要统计每个活动发送的消息
+    RobotIns robotIns = 9; // 机器人
+}
+
+message RobotIns {
+    string insId = 1; // 实例ID
+    string cid = 2;
+    string tid = 3;
+    string ttype = 4;
+    string name = 5; // 机器名字
+    string desc = 6; // 详细描述
+    string avatar = 7; // 头像
+}
+
+message SendMsgRes {
+    common.Result result = 1;
+    biz.IMMsgItem msg = 10; // 消息内容
+}
+
+message NoticeItem {
+    int64 seqid = 1; // 消息唯一id，递增
+    bool has_read = 2; // 是否已经读取；true表示已读
+    bytes payload = 3; // Notify message序列化后的二进制
+}
+
+// 获取未读频道通知总数
+// 客户端启动app时拉取一次，后续客户端自己维护未读数量
+message GetUnreadNoticeCountsReq {
+
+}
+
+message GetUnreadNoticeCountsRes {
+    common.Result result = 1;
+    int32 total_unread_counts = 2; // 未读总条数
+    NoticeItem latest_notice = 3; // 最新的消息
+}
+
+// 获取自己的频道通知
+// 客户端打开频道通知列表时才拉取，进频道不用拉取
+// 每次进频道通知列表，快照号传0。如果在频道通知列表翻页拉取时，需要使用服务器返回的快照号。
+// 拉取过程中客户端可能会收到新的单播通知，所以客户端不能直接用拉取结果覆盖本地消息
+message GetNoticeReq {
+    common.Page page = 1;
+}
+
+// 获取频道通知内容
+message GetNoticeRes {
+    common.Result result = 1;
+    common.Page page = 2;
+    repeated NoticeItem items = 3;
+}
+
+// 删除自己的频道通知
+message ClearNoticeReq {
+    int64 max_seqid = 1; // 删除不大于max_seqid且不小于min_seqid的所有消息
+    int64 min_seqid = 2;
+}
+
+// 删除频道通知结果
+message ClearNoticeRes {
+    common.Result result = 1;
+}
+
+// 通知回执：确认通知已读，已读的通知不用ack
+// 触发动作是：点击未读通知或者是拉取未读通知
+message AckNoticeReq {
+    repeated int64 seqids = 1; // 逐条确认消息是否已读
+}
+
+// 回执结果
+message AckNoticeRes {
+    common.Result result = 1;
+}
+
+// 订阅&取消订阅。缺省是订阅
+message SubscribeReq {
+    string cid = 1;
+    bool sub = 2; // true表示订阅，false表示取消订阅
+}
+message SubscribeRes {
+    common.Result result = 1;
+}
+
+// 开启关闭 免打扰
+message DoNotDisturbReq {
+    string cid = 1;
+    bool notify = 2; // true表示接收通知，false表示免打扰
+}
+message DoNotDisturbRes {
+    common.Result result = 1;
+}
+
+// 上座
+message SitdownReq {
+    string cid = 1;
+    int32 seat = 2; // since 1
+}
+message SitdownRes {
+    common.Result result = 1;
+
+    int32 seat = 10; // 最终上座成功的座位
+}
+
+// 下座
+message StandupReq {
+    string cid = 1;
+    int64 uid = 2; // 管理员把人抱下麦的时候填
+}
+message StandupRes {
+    common.Result result = 1;
+}
+
+// 邀请上座
+message SitdownPlzReq {
+    string cid = 1;
+    int64 uid = 2;
+    int32 seat = 3; // since 1
+}
+message SitdownPlzRes {
+    common.Result result = 1;
+}
+
+// 接受上座邀请
+message AcceptSitdownReq {
+    string cid = 1;
+    string plz_id = 2; // notify带的邀请id
+    bool accept = 3;
+}
+message AcceptSitdownRes {
+    common.Result result = 1;
+    int32 seat = 10; // 上座的座位编号
+}
+
+// 锁定座位
+message LockSeatReq {
+    string cid = 1;
+    int32 seat = 2;
+    bool lock = 3; // true表示lock，false表示unlock
+}
+message LockSeatRes {
+    common.Result result = 1;
+}
+//切换座位
+message ChangeSeatReq {
+    string cid = 1;
+    int32 seat = 2; // 座位编号，from 1
+}
+message ChangeSeatRes {
+    common.Result result = 1;
+}
+//设置麦克风
+message SetMicReq {
+    string cid = 1;
+    int32 mic_ban = 2;//1 禁麦，2取消禁麦
+    int32 mic_close = 3;//1 自己关麦，2取消自己关麦
+    int64 uid = 4;//被操作的uid
+    int32 seat = 5;//被操作的座位，from 1
+}
+message SetMicRes {
+    common.Result result = 1;
+    string cid = 10;//透传自req
+    int32 mic_ban = 11;//透传自req
+    int32 mic_close = 12;//透传自req
+    int64 uid = 13;//透传自req
+    int32 seat = 14;//透传自req
+}
+// 背景
+message Background {
+    int32   id = 1;           // 主题编号，0表示缺省主题
+    string  bg_url = 2;       // 背景图
+    string title_color = 3; //标题栏颜色，目前Android需要使用
+    string preview_url = 4; //预览图
+    int64 expire = 5; //过期unix时间戳，秒
+    int32 type = 6; //0普通主题，1活动主题
+}
+// 拉取背景列表
+message GetBackgroundListReq {
+    string cid = 1;
+}
+message GetBackgroundListRes {
+    common.Result result = 1;
+    repeated Background background = 10;
+}
+// 设置背景
+message SetBackgroundReq {
+    string cid = 1;
+    int32 id = 2;
+}
+message SetBackgroundRes {
+    common.Result result = 1;
+    Background background = 10;
+}
+// 拉取party背景列表
+message GetPartyBackgroundListReq {
+    string cid = 1;
+}
+message GetPartyBackgroundListRes {
+    common.Result result = 1;
+    repeated Background background = 10;
+}
+// 设置party背景
+message SetPartyBackgroundReq {
+    string cid = 1;
+    int32 id = 2;
+}
+message SetPartyBackgroundRes {
+    common.Result result = 1;
+    Background background = 10;
+}
+//获取公屏快捷回复消息
+message GetFastReplyReq {
+    string cid = 1;
+    string gid = 2; //游戏id。聊天模式为空
+}
+message GetFastReplyRes {
+    common.Result result = 1;
+    repeated string replies = 10;
+}
+
+// 加载玩法
+message LoadPluginReq {
+    string cid = 1;
+    biz.PluginInfo plugin_info = 2; // 插件信息
+}
+message LoadPluginRes {
+    common.Result result = 1;
+    biz.PluginInfo plugin_info = 10; // 插件信息
+}
+
+// 探测响应
+message ProbeReq {
+    string cid = 1;
+    string data = 2; // 透传NotifyProbe的数据
+}
+message ProbeRes {
+    common.Result result = 1;
+}
+
+message GetEnterTokenReq{
+    string cid = 1;
+}
+message GetEnterTokenRes{
+    common.Result result = 1;
+    string enter_token = 10; // 加密token
+}
+message GetCurrentChannelsReq {
+    repeated int64 uids = 1; //用户uid,最多处理50个
+    bool only_public = 2;//true返回不包括私密房，false返回全部公开和私密
+    bool only_unlocked = 3; //true表示过滤掉上锁的房间
+}
+message GetCurrentChannelsRes {
+    common.Result result = 1;
+    repeated string rids = 10; //房间id，空字符串表示不在房间
+    repeated bool isroom = 11; //兼容性需求，返回ok的情况下，len(rids)==len(isroom)，true表示这个是一个老的语音房
+}
+
+// 请求配置信息
+message GetConfigReq {
+}
+message GetConfigRes {
+    common.Result result = 1;
+
+    int64 max_channel = 10; // 最大允许频道创建数
+    int64 send_limit = 11; // 基础频道 成员发送消息的频率限制，单位: x条消息/秒, 0表示不限制
+    int64 guest_limit = 12; // 基础频道 游客发送消息的频率限制，单位: x条消息/秒, 0表示不限制
+    int64 online_limit = 13; // 最大在线人数限制
+    map<int32,int64> role_limit = 14; // 各种角色的人数限制，频道主不返回，就1个
+    bool voice_chat = 15; // 是否允许开启语音聊天
+    repeated string room_bg_colors = 16;// 房间列表背景色
+    bool gray_channel = 17; // 是否有创建频道的权限
+    string cid = 18; // 如果已经有顶级频道，则返回频道id
+    string roomid = 19; // 兼容字段,旧的语音房id
+    bool show_album = 20; // 语音房 true:显示相册,false:不显示
+    bool show_camera = 21; // 语音房 true:显示相机,false:不显示
+    bool change_voice_room = 22; // 是否允许切换语音房模式 true:允许切换, false:不允许
+    int64 voice_send_limit = 23; // 加载语音玩法 成员发送消息的频率限制，单位: x条消息/秒, 0表示不限制
+    int64 voice_guest_limit = 24; // 加载语音玩法 游客发送消息的频率限制，单位: x条消息/秒, 0表示不限制
+    int32 result_condition_min = 25; //针对需要主播开播多少分钟才需要展示结果页
+    bool owner_onmicro_first = 26; // 控制房主在加载语音房的时候只能坐在1号位上, false:房主可以坐在任何位置上面。
+    bool change_base = 27; // 是否允许切换回基础模板 true:允许切换, false:不允许
+    bool show_basic_grade_medal = 28; // 基础模板等级徽章, true:显示, false:不显示
+    bool show_basic_activity_medal = 29; // 基础模板显示勋章, true:显示, false:不显示
+    bool can_guest_input = 30; // 是否允许游客输入, true:允许, false:不允许
+    bool forbid_base_guest_gif = 31; // 是否禁止基础模板游客发送gif
+    bool forbid_base_guest_emoji = 32; // 是否禁止基础模板游客发送大表情
+    bool forbid_base_guest_image = 33; // 是否禁止基础模板游客发送图片
+    bool forbid_base_guest_pkgame = 34; // 是否禁止基础模板游客发送pk游戏邀请
+    bool forbid_base_guest_join_voice = 35; // 是否禁止基础模板游客加入语音聊天
+    bool forbid_voice_guest_emoji = 36; // 是否禁止语音玩法游客发送大表情
+    repeated int64 ban_time_selects = 37; // 封禁时间选项，单位: 分钟
+    bool upgrade = 40; //频道改版。cid字段对应的频道已经升级了新频道
+    int32 base_msg_max_length = 41; //3.13 文字房默认最大发言字符数
+    int32 chat_msg_max_length = 42; //3.13 语音房默认最大发言字符数
+}
+// 开启语音通话
+message OpenVoiceChatReq {
+    string cid = 1;
+}
+message OpenVoiceChatRes {
+    common.Result result = 1;
+}
+
+message ReadyReq {
+    string cid = 1;
+    bool ready = 2;         // true为准备，false为取消准备
+}
+message ReadyRes {
+    common.Result result = 1;
+}
+
+message StartGameReq {
+    string cid = 1;
+}
+message StartGameRes {
+    common.Result result = 1;
+}
+message ChannelStatus{
+    string cid = 1;
+    int32 onlines = 2; // 在线人数
+    biz.PluginInfo current_plugin_info = 3; // 当前使用的插件信息
+    repeated biz.SeatUser seat_users = 4; // 座位信息
+    int64 owner = 5;//频道主,ret_owner传true会返回
+    int32 top_onlines = 6; // 频道改版。顶级频道在线人数。ret_top_onlines传true会返回
+}
+message GetStatusReq{
+    repeated string cids = 1;        // 频道id
+    bool ret_owner = 2; //true 返回owner信息
+    bool ret_top_onlines = 3;//true会返回top_onlines
+}
+message GetStatusRes{
+    common.Result result = 1;
+    repeated ChannelStatus status = 10;
+}
+message ReportBlockChannelReq {
+    string cid = 1;
+}
+message ReportBlockChannelRes {
+    common.Result result = 1;
+}
+
+message MsgUnread {
+    string cid       = 1;
+    int64 begin_time = 2; // 开始时间 单位:毫秒 (begin <= end)
+    int64 end_time   = 3; // 结束时间 单位: 毫秒
+    int64 count      = 4; // 未读消息数量
+    int64 latest_timestamp = 5; // 查询范围内最后一条消息时间戳
+}
+message GetMsgUnreadReq {
+    repeated MsgUnread unread = 1;
+}
+message GetMsgUnreadRes {
+    common.Result result = 1;
+    repeated MsgUnread unread = 2;
+}
+message AddUserBackgroundReq {
+    repeated int64 uids = 1;
+    int32 id = 2; // 主题编号，新主题需要先在房间管理这里分配
+    int64 expire = 3; //过期unix时间戳，秒
+}
+message AddUserBackgroundRes {
+    common.Result result = 1;
+}
+
+//OpChannelCard 带上房间列表的Card
+message OpChannelCard {
+    int64 card_id =1;
+    string name = 2;
+    int64 pos = 3;
+    string color = 4; //背景色
+    bool on_hago_index =5; //hago首页展示
+    repeated string cids = 6;
+    bool support_custom = 7; //是否支持在卡片中创建频道
+    string icon_url = 8; //卡片图标链接
+
+    int64 tab_id = 9;
+    int32 source = 10;           // see ECategory
+    int64 style = 11;            // see EStyle
+    int64 bottom_message = 12;   // see EBottomMessage
+    bool is_fill_by_server = 13;
+    int64 display_user = 14;        // see EDisplayUser
+    int64 module_attribute = 15;    // see EModuleAttribute
+    repeated string search_word = 16;
+    string description = 17;
+    bool is_special = 18;
+
+    int64 sp_module_type = 19;
+    map<int64,FixedCids> fixed_cids = 20;
+    map<string, string> lang_name = 21;       //多语言module name
+    map<string, EnterInfo> enter_infos = 22;  // key是cid，可以是字段6，也可以是字段20
+
+    bool is_canary = 23;                      // 是否灰度
+    int32 os_type = 24;                       // tab可见系统类型，see enum EOSType
+    int32 version = 25;                       // tab可见版本号，3.3.5 == 30305
+    string ab_test_id = 26;                   // AB实验平台配置的实验ID
+
+    int32 min_visible_count = 27;             // 模块最小可见数量
+    int32 max_visible_count = 28;             // 模块最大可见数量
+
+    int32 visible_user_type = 29;             // 可见用户类型
+
+    repeated string cover_avatar = 30;        // 封面头像
+    string cover = 31;                        // 封面图片
+
+    map<string, string> icon_msg = 32;       // Icon的文案，支持多语言
+    map<string, string> main_title = 33;     // 主标题，支持多语言
+    map<string, string> sub_title = 34;      //主标题，支持多语言
+
+    bool filter_cover_channel = 35;          // 是否过滤一级列表中模块封面的频道
+
+    string special_key = 36;                 // 特殊处理的key
+    string ext = 37;                         // 拓展信息
+}
+
+message SpChannelCard {
+    int64 card_id =1;
+    int64 tab_id = 2;
+    string name = 3;
+    int64 pos = 4;
+    int64 sp_module_type = 5;
+    bool is_special = 6;
+
+    repeated string cover_avatar = 7;
+    string cover = 8;
+    string icon_url = 9;
+    map<string, string> icon_msg = 10;
+    map<string, string> main_title = 11;
+    map<string, string> sub_title = 12;
+    string special_key = 13;
+    string ext = 14;
+}
+
+message SupportLang {
+    repeated string support_lang = 1;
+}
+
+// Tab
+message Tab {
+    int64 tab_id = 1;
+    map<string, SupportLang> lang  = 2; //支持的语言，暂时没用上
+    map<string, string> name = 3;       //多语言tab_name
+    string tab_icon = 4;                //tab图标
+    string tab_cover = 5;               //tab封面
+    bool is_canary = 6;                 //是否灰度
+    int64 canary_uid = 7;               //灰度起始uid
+    int64 canary_num = 8;               //灰度比例，30 == 30%
+    bool is_default = 9;                //是否默认tab
+    int32 source = 10;                  //tab的内容源，see enum ECategory
+    int64 pos = 11;                     //tab的位置
+    int32 os_type = 12;                 //tab可见系统类型，see enum EOSType
+    int32 version = 13;                 //tab可见版本号，3.3.5 == 30305
+    string ab_test_id = 14;             //AB实验平台配置的实验ID
+}
+
+message TabCard {
+    int64 tab_id = 1;
+    repeated OpChannelCard cards = 11;
+}
+
+message GetAllOpChannelsReq {}
+
+message GetAllOpChannelsRes {
+    common.Result result = 1;
+    repeated OpChannelCard cards = 2;
+}
+
+message GetCustomOpCardsReq{}
+
+message GetCustomOpCardsRes {
+    common.Result result = 1;
+    repeated OpChannelCard cards = 2;
+}
+
+message GetCategoryTabsReq{}
+
+message GetCategoryTabsRes {
+    common.Result result = 1;
+    repeated Tab tabs = 2;
+}
+
+message JoinCustomOpCardReq {
+    int64 card_id = 1;
+    string cid = 2;
+}
+
+message JoinCustomOpCardRes {
+    common.Result result = 1;
+}
+
+//GetOpCardChannelsReq ...
+message GetOpCardChannelsReq {
+    int64 card_id = 1;        //运营Card的ID
+}
+
+//GetOpCardRoomsRes ...
+message GetOpCardChannelsRes {
+    common.Result result = 1;
+    repeated string cids = 2;
+}
+
+//GetCategoryTabCardsReq ...
+message GetCategoryTabCardsReq {
+    repeated int64 tab_ids = 1;        //分类Tab Id
+}
+
+//GetCategoryTabCardsRes ...
+message GetCategoryTabCardsRes {
+    common.Result result = 1;
+    repeated TabCard tabs = 2;
+}
+
+message CityLabel {
+    string cid = 1;
+    string city_local = 2;
+    int32  label = 3;       // 定义见rrec.proto-》RLabel
+    int32  pos = 4;         // 官群位置
+    string picture = 5;     // 官群图片
+}
+
+// GetCityChannelReq 拉取有有效标签的同城群列表，服务器调用
+message GetCityLabelReq {
+    int64 version = 1; // 当前版本号
+}
+
+message GetCityLabelRes {
+    common.Result result = 1;
+    int64 version = 2; // 最新版本号
+    repeated CityLabel list = 3;
+}
+
+message CityAlias {
+    string key = 1;        // countryLocal_cityLocal
+    string country_zh = 2; // 中文国家名
+    string city_zh = 3;    // 中文城市名
+}
+
+// GetCityAliasReq 拉取同城群别名信息，服务器调用
+message GetCityAliasReq {
+    int64 version = 1; // 当前版本号
+}
+
+message GetCityAliasRes {
+    common.Result result = 1;
+    int64 version = 2; // 最新版本号
+    repeated CityAlias list = 3;
+}
+
+// 检查同城群创建权限
+message GetCityPrivilegeReq {
+}
+
+message GetCityPrivilegeRes {
+    common.Result result = 1;
+}
+
+message SwitchLbsReq {
+    string cid       = 1; // 频道ID
+    bool   status    = 2; // true-打开lbs开关
+    double longitude = 3; // status==true时有效
+    double latitude  = 4; // status==true时有效
+}
+
+message SwitchLbsRes {
+    common.Result result = 1;
+}
+
+message ChannelPlugin {
+    string cid = 1;
+    biz.PluginInfo plugin_info = 2; //插件
+}
+message GetChannelPluginsReq {
+    repeated string cids = 1; // 频道id
+}
+message GetChannelPluginsRes {
+    common.Result result = 1;
+    repeated ChannelPlugin plugins = 10; // 当前使用的插件id
+}
+// 检查所选位置是否允许创建同城群
+message GetCityLocalLimitReq {
+    string country       = 1;  // 国家名（本地语言）
+    string city          = 2;  // 城市名（本地语言）
+    double longitude     = 3;
+    double latitude      = 4;
+}
+
+message GetCityLocalLimitRes {
+    common.Result result = 1;
+}
+message GetEndPageReq {
+    string cid = 1;
+}
+message GetEndPageRes {
+    common.Result result = 1;
+    int32 show_time = 10; //直播时长（秒）
+    int32 enter_count = 11; //直播经过房间的人次
+    int32 enter_count_delta = 12; //直播进入房间的人次 增幅%(仅预留字段)
+    int32 fan_count = 13; //新增粉丝数
+    int32 fan_count_delta = 14; //新增粉丝数 增幅%(仅预留字段)
+    bool recommend = 15; //true为推荐
+    int32 exposure_delta = 16; //曝光增幅%(仅预留字段)
+    int32 audio_show_time = 20; //音频直播时长（秒）
+    int32 audio_enter_count = 21; //音频直播经过房间的人次
+    int32 audio_fan_count = 22; //音频新增粉丝数
+    int32 video_show_time = 23; //音频直播时长（秒）
+    int32 video_enter_count = 24; //音频直播经过房间的人次
+    int32 video_fan_count = 25; //音频新增粉丝数
+}
+
+message BatchGetCinfoReq{
+    repeated string cids = 1;        // 频道id
+    biz.CInfo selector = 2; // 过滤器，要指定需要的字段，避免不需要的字段返回
+}
+message BatchGetCinfoRes{
+    common.Result result = 1;
+    repeated biz.CInfo cinfo = 10;
+}
+//频道改版。party页的语音房
+message PartyInfoChannel {
+    biz.CInfo cinfo = 1; //频道信息
+    biz.PluginInfo plugin_info = 2; //插件
+    int32 onlines = 3; // 在线人数
+    repeated int64 show_uids = 4;//3.14 优先选择房主的头像、麦上嘉宾的头像冒出、再其次选择在线用户的头像冒出,最多选择6个吧。
+}
+message GetPartyInfoReq {
+    string cid = 1; // 顶级频道id
+}
+message GetPartyInfoRes {
+    common.Result result = 1;
+    repeated PartyInfoChannel channels = 12; //房间信息
+    Background party_background = 13; //3.14 顶级频道party背景
+    repeated int64 family_show_uids = 14; //3.18 如果是家族频道，返回3个家族成员中在开播的uid
+}
+message GetPartyOnlinesReq {
+    string cid = 1;
+    common.Page page = 2;
+}
+message GetPartyOnlinesRes {
+    common.Result result = 1;
+    common.Page page = 2;
+    repeated int64 uids = 10;
+}
+message MoveMemberReq {
+    repeated string cids = 1; //要迁移的子频道
+    string pid = 2; //顶级频道id
+}
+message MoveMemberRes {
+    common.Result result = 1;
+}
+message GetMoveMemberChannelReq {
+    string pid = 1; //顶级频道id
+}
+message GetMoveMemberChannelRes {
+    common.Result result = 1;
+    repeated biz.CInfo cinfos = 10;     //子频道信息
+    repeated int32 member_count = 12;   //成员数
+    bool silent_upgrade = 20;           // 是否后台偷偷把成员迁移了
+}
+
+message SetFakeOnlineNumReq {
+    int64 num = 1;  //假人人数
+    string cid = 2; //频道号
+    int64 endTimestamp = 3;//结束时间戳
+}
+
+message SetFakeOnlineNumRes {
+    common.Result result = 1;
+}
+
+message GetFakeOnlineNumReq {
+    string cid = 1; //频道号
+}
+
+message GetFakeOnlineNumRes {
+    common.Result result = 1;
+
+    int64 num = 2;  //假人人数
+}
+
+message DeleteCoverReq {
+    int64 uid = 1;   // 频道主uid
+    string cid = 2;   // 频道号
+    string cover = 3;  // 封面
+    bool isAvatar = 4; // 封面是否用户头像
+}
+
+message DeleteCoverRes {
+    common.Result result = 1;
+}
+message GetMemberWelcomeTextReq{
+    string cid = 1;
+}
+message GetMemberWelcomeTextRes{
+    common.Result result = 1;
+    repeated string texts = 10;
+}
+message GetNewMemberImagesReq{
+    string cid = 1;
+}
+message GetNewMemberImagesRes{
+    common.Result result = 1;
+    repeated string urls = 10;
+}
+message GetBulletinPushInfoReq {
+    string cid = 1;
+}
+message GetBulletinPushInfoRes {
+    common.Result result = 1;
+    int32 left_push_count = 10; //今天剩下可以push的次数
+    bool show = 11;//是否显示发送选项
+}
+message GetPluginStatReq {
+}
+message GetPluginStatRes {
+    common.Result result = 1;
+    int32 singing = 10;
+    int32 gaming = 11;
+    int32 dating = 12;
+}
+message GetMyChannelStatusReq{
+    repeated int64 uids = 1;        // 用户uid
+}
+message GetMyChannelStatusRes{
+    common.Result result = 1;
+    repeated ChannelStatus status = 10;
+}
+message PlayBgMusicReq{
+    string cid = 1;
+    bool play = 2; //true为播放，false为结束
+    bool manual = 3;//true表示主动操作
+}
+message PlayBgMusicRes{
+    common.Result result = 1;
+}
+message GetPlayBgMusicConfigReq {
+    string cid = 1;//频道id
+    int64 owner = 2; //频道主uid
+}
+message GetPlayBgMusicConfigRes {
+    common.Result result = 1;
+    bool has_setting = 10; //true为有音乐设置
+}
+message GetMyFamilyReq{
+}
+message GetMyFamilyRes{
+    common.Result result = 1;
+    biz.CInfo cinfo = 10;//先按一个用户一个家族处理
+}
+message BatchGetMyFamilyReq {
+    repeated int64 uids = 1;
+}
+message BatchGetMyFamilyRes {
+    common.Result result = 1;
+    repeated biz.CInfo cinfos = 10;
+}
+message GetCreateFamilyPermitReq{
+}
+message GetCreateFamilyPermitRes {
+    common.Result result = 1;
+}
+message SetCreateFamilyPermitReq {
+    int64 uid = 1;
+    biz.RoleLimit role_limit = 2;
+}
+message SetCreateFamilyPermitRes {
+    common.Result result = 1;
+}
+message GetFamilyConfigReq {
+}
+message GetFamilyConfigRes {
+    common.Result result = 1;
+    bool show_entry = 10; //true展示语音房内的家族入口
+}
+message GetFamilyRoomListReq{
+    string cid = 1;//家族频道id
+}
+message GetFamilyRoomListRes{
+    common.Result result = 1;
+    repeated PartyInfoChannel channels = 10; //房间信息
+}
+// 服务器调用。离开频道
+message ServerLeaveReq {
+    int64 uid = 1;
+    string cid = 2;
+    int32 leaveReason = 3;
+}
+message ServerLeaveRes {
+    common.Result result = 1;
+}
+message FixZombieReq {
+    repeated string cids = 1;
+    string valid_begin_date = 2;
+    bool del = 3;
+}
+message FixZombieRes {
+    common.Result result = 1;
+    message Zombie {
+        string cid = 1;
+        repeated int64 uid = 2;
+        repeated int64 timestamp = 3;
+    }
+    repeated Zombie zombies = 2;
+}
+message ChangeChannelOwnerReq {
+    string cid = 1; //要切换的频道id
+    int64 old_owner = 2; //旧的频道主
+    int64 new_owner = 3; //新的频道主
+}
+message ChangeChannelOwnerRes {
+    common.Result result = 1;
+}
+message GetJoinApplyStatusReq{
+}
+message GetJoinApplyStatusRes {
+    common.Result result = 1;
+    biz.CInfo cinfo = 10;//如果已经有家族(返回码1810)，这里返回家族内容
+    repeated string apply_cids = 11;//正在审核中的家族频道id
+}
+message GetFamilyInfoAndMemberCountReq{
+    string cid = 1; //家族频道id
+}
+message GetFamilyInfoAndMemberCountRes{
+    common.Result result = 1;
+    biz.CInfo cinfo = 10;
+    int32 member_count = 11;//当前人员数，包含所有角色
+}
+service Channel {
+    // **********配置类接口**********
+
+    // **********增删改查************
+
+    // [A] 创建频道
+    rpc Create (CreateReq) returns (CreateRes);
+    // [A] 解散频道
+    rpc Disband (DisbandReq) returns (DisbandRes);
+    // [A] 修改频道信息
+    rpc Modify (ModifyReq) returns (ModifyRes);
+    // [A] 获取特定频道信息
+    rpc GetCInfo (GetCInfoReq) returns (GetCInfoRes);
+    // [A] 获取顶级和所有子频道信息
+    rpc GetCInfoList (GetCInfoListReq) returns (GetCInfoListRes);
+    // [A] 获取自己的顶级频道
+    rpc GetMyTopCInfo(GetMyTopCInfoReq) returns (GetMyTopCInfoRes);
+    // [A] 频道搜索
+    rpc Search (SearchReq) returns (SearchRes);
+    // [A] 批量拉取历史房间信息
+    rpc GetHistoryChannel(GetHistoryChannelReq) returns (GetHistoryChannelRes);
+    // [A] 运营行为
+    rpc Operate (OperateReq) returns (OperateRes);
+
+    // ***********个体相关***************
+
+    // [A] 获取我加入了的频道列表
+    rpc GetMyJoined (GetMyJoinedReq) returns (GetMyJoinedRes);
+
+    // [A] 获取uid加入了的频道列表
+    rpc GetUserJoined (GetUserJoinedReq) returns (GetUserJoinedRes);
+
+    // *************成员相关****************
+
+    // [A] 申请身份
+    rpc JoinApply (JoinApplyReq) returns (JoinApplyRes);
+    // [A] 申请审批
+    rpc JoinApprove (JoinApproveReq) returns (JoinApproveRes);
+    // [A] 设置角色
+    rpc SetRole (SetRoleReq) returns (SetRoleRes);
+    // [A] 批量设置角色
+    rpc BatchSetRole (BatchSetRoleReq) returns (BatchSetRoleRes);
+    // [A] 接受角色
+    rpc AcceptRole (AcceptRoleReq) returns (AcceptRoleRes);
+    // 禁言
+    rpc Banned (BannedReq) returns (BannedRes);
+    // 查询禁言状态
+    rpc GetBannedStatus(GetBannedStatusReq) returns (GetBannedStatusRes);
+    // [A] 踢出频道
+    rpc KickOff (KickOffReq) returns (KickOffRes);
+    // [A] 设置备注
+    rpc SetRemark (SetRemarkReq) returns (SetRemarkRes);
+    // [A] 获取指定频道的成员列表
+    rpc GetMemberList (GetMemberListReq) returns (GetMemberListRes);
+    // [A] 获取指定uid的成员信息
+    rpc GetMembers (GetMembersReq) returns (GetMembersRes);
+
+    // *******在线行为********
+
+    // 进入频道
+    rpc Enter (EnterReq) returns (EnterRes);
+    // 离开频道
+    rpc Leave (LeaveReq) returns (LeaveRes);
+    // 获取媒体token
+    rpc GetMediaToken (GetMediaTokenReq) returns (GetMediaTokenRes);
+    // 获取在线列表
+    rpc GetOnlines (GetOnlinesReq) returns (GetOnlinesRes);
+
+
+    // *************消息***********
+
+    // 发送消息
+    rpc SendMsg (SendMsgReq) returns (SendMsgRes);
+    // 订阅频道，缺省是订阅
+    rpc Subscribe (SubscribeReq) returns (SubscribeRes);
+    // 设置免打扰
+    rpc DoNotDisturb (DoNotDisturbReq) returns (DoNotDisturbRes);
+    // 拉取未读频道通知数量
+    rpc GetUnreadNoticeCounts (GetUnreadNoticeCountsReq) returns (GetUnreadNoticeCountsRes);
+    // 拉取自己的频道通知
+    rpc GetNotice (GetNoticeReq) returns (GetNoticeRes);
+    // 删除频道通知
+    rpc ClearNotice (ClearNoticeReq) returns (ClearNoticeRes);
+    // 确认频道通知已读
+    rpc AckNotice (AckNoticeReq) returns (AckNoticeRes);
+
+    // ************座位***************
+
+    // 上座
+    rpc Sitdown (SitdownReq) returns (SitdownRes);
+    // 下座
+    rpc Standup (StandupReq) returns (StandupRes);
+    // 邀请上座
+    rpc SitdownPlz (SitdownPlzReq) returns (SitdownPlzRes);
+    // 接受、拒绝上座邀请
+    rpc AcceptSitdown (AcceptSitdownReq) returns (AcceptSitdownRes);
+    // 锁定&解锁座位
+    rpc LockSeat (LockSeatReq) returns (LockSeatRes);
+    // 切换座位
+    rpc ChangeSeat(ChangeSeatReq) returns (ChangeSeatRes);
+    // 控制麦克风
+    rpc SetMic(SetMicReq) returns (SetMicRes);
+    // 模板
+    rpc LoadPlugin (LoadPluginReq) returns (LoadPluginRes);
+
+    // 探测响应。离线事件是经由online服务通告的，有可能丢失，所以要加一个保证措施
+    rpc Probe (ProbeReq) returns (ProbeRes);
+
+    // 拉取背景列表
+    rpc GetBackgroundList(GetBackgroundListReq) returns (GetBackgroundListRes);
+    // 设置背景
+    rpc SetBackground(SetBackgroundReq) returns (SetBackgroundRes);
+
+    //给用户增加背景
+    rpc AddUserBackground(AddUserBackgroundReq) returns (AddUserBackgroundRes);
+
+    // 获取公屏快捷回复消息
+    rpc GetFastReplyList (GetFastReplyReq) returns (GetFastReplyRes);
+
+    //开启语音通话
+    rpc OpenVoiceChat (OpenVoiceChatReq) returns (OpenVoiceChatRes);
+
+    // 准备游戏
+    rpc Ready(ReadyReq) returns (ReadyRes);
+
+    // 开始游戏
+    rpc StartGame(StartGameReq) returns (StartGameRes);
+
+    // 服务端调用,查语音房信息
+    rpc GetStatus(GetStatusReq) returns(GetStatusRes);
+
+    //上报屏蔽的频道
+    rpc ReportBlockChannel(ReportBlockChannelReq) returns (ReportBlockChannelRes){}
+
+    // ************邀请***************
+
+    // 生成邀请enter_token
+    rpc GetEnterToken(GetEnterTokenReq) returns (GetEnterTokenRes);
+
+    // 批量查询用户所在频道(关注服务调、客户端资料卡踩房调、嘉勇那排行榜调)
+    rpc GetCurrentChannels(GetCurrentChannelsReq) returns (GetCurrentChannelsRes);
+
+    // ************配置***************
+
+    // 配置信息
+    rpc GetConfig(GetConfigReq) returns (GetConfigRes) {}
+
+    // ************cim未读消息***************
+    rpc GetMsgUnread(GetMsgUnreadReq) returns (GetMsgUnreadRes) {}
+
+    //获取所有的运营卡片和运营房间
+    rpc GetAllOpChannels(GetAllOpChannelsReq) returns(GetAllOpChannelsRes){}
+
+    //获取用户自定义的运营卡片
+    rpc GetCustomOpCards(GetCustomOpCardsReq) returns(GetCustomOpCardsRes) {}
+
+    //用户自己加入某个运营的话题
+    rpc JoinCustomOpCard(JoinCustomOpCardReq) returns(JoinCustomOpCardRes) {}
+
+    //获取某个运营卡片下的运营房间
+    rpc GetOpCardChannels(GetOpCardChannelsReq) returns(GetOpCardChannelsRes) {}
+
+    //固定位置
+    rpc GetFixedCids(GetFixedCidsReq) returns(GetFixedCidsRes) {}
+
+    //更新固定位置
+    rpc AddFixedPosCh(AddFixedPosChReq) returns(AddFixedPosChRes) {}
+
+    // 检查同城群创建权限
+    rpc GetCityPrivilege(GetCityPrivilegeReq) returns(GetCityPrivilegeRes) {}
+
+    // 检查所选位置是否允许创建同城群
+    rpc GetCityLocalLimit(GetCityLocalLimitReq) returns(GetCityLocalLimitRes) {}
+
+    // GetCityLabel 服务器间接口
+    rpc GetCityLabel(GetCityLabelReq) returns(GetCityLabelRes) {}
+
+    // GetCityAlias 服务器间接口
+    rpc GetCityAlias(GetCityAliasReq) returns(GetCityAliasRes) {}
+
+    // SwitchLbs 切换lbs开关状态，打开则变成同城群
+    rpc SwitchLbs(SwitchLbsReq) returns(SwitchLbsRes) {}
+
+    //获取分类Tab
+    rpc GetCategoryTabs(GetCategoryTabsReq) returns(GetCategoryTabsRes) {}
+
+    //获取某个Tab分类下的所有聚合卡片下的所有频道
+    rpc GetAllCategoryTabCardChannels (GetCategoryTabCardsReq) returns (GetCategoryTabCardsRes) {}
+
+    // 批量查询一批频道的当前插件,最多100
+    rpc GetChannelPlugins (GetChannelPluginsReq) returns (GetChannelPluginsRes);
+
+    //频道主查询关播页,v3.5
+    rpc GetEndPage (GetEndPageReq) returns (GetEndPageRes);
+
+    //批量查询频道信息
+    rpc BatchGetCinfo (BatchGetCinfoReq) returns (BatchGetCinfoRes);
+
+    // 3.6 视频秀场
+    //获取视频秀的配置
+    rpc GetVedioShowConfig (GetVideoShowConfigReq) returns (GetVideoShowConfigRes);
+
+    //上报视频状态
+    rpc ReportVideoStatus (ReportVideoStatusReq) returns (ReportVideoStatusRes);
+
+    //上报ktv状态
+    rpc ReportKTVStatus (ReportKTVStatusReq) returns(ReportKTVStatusRes);
+
+    //频道改版。party页面
+    rpc GetPartyInfo (GetPartyInfoReq) returns (GetPartyInfoRes);
+
+    //频道改版。party在线用户
+    rpc GetPartyOnlines (GetPartyOnlinesReq) returns (GetPartyOnlinesRes);
+
+    //频道改版。迁移子频道成员到顶级频道。
+    rpc MoveMember (MoveMemberReq) returns (MoveMemberRes);
+
+    //频道改版。查询要迁移的子频道。
+    rpc GetMoveMemberChannel (GetMoveMemberChannelReq) returns (GetMoveMemberChannelRes);
+
+    // 3.8 人气填充
+    //设置假填充在线人数
+    rpc SetFakeOnlineNum (SetFakeOnlineNumReq) returns (SetFakeOnlineNumRes);
+
+    //查询假填充的在线人数
+    rpc GetFakeOnlineNum (GetFakeOnlineNumReq) returns (GetFakeOnlineNumRes);
+
+    // ************ 安审相关 *************
+    // 删除封面
+    rpc DeleteCover(DeleteCoverReq) returns (DeleteCoverRes);
+
+    //3.13 频道成员，拉取欢迎语,用于发给新的成员
+    rpc GetMemberWelcomeText(GetMemberWelcomeTextReq) returns (GetMemberWelcomeTextRes);
+
+    //3.13 新的频道成员，拉取快捷表情，用于可以招呼
+    rpc GetNewMemberImages(GetNewMemberImagesReq) returns (GetNewMemberImagesRes);
+
+    //3.13 查询公告push信息
+    rpc GetBulletinPushInfo(GetBulletinPushInfoReq) returns (GetBulletinPushInfoRes);
+
+    //3.14 查询party页可配置的背景
+    rpc GetPartyBackgroundList(GetPartyBackgroundListReq) returns (GetPartyBackgroundListRes);
+    //3.14 设置party页背景
+    rpc SetPartyBackground(SetPartyBackgroundReq) returns (SetPartyBackgroundRes);
+    //3.14 APP首页拉取玩法统计
+    rpc GetPluginStat(GetPluginStatReq) returns (GetPluginStatRes);
+
+    //服务端调用，用户如果在自己频道，返回当前状态
+    rpc GetMyChannelStatus(GetMyChannelStatusReq) returns (GetMyChannelStatusRes);
+
+    //播放或结束背景音乐
+    rpc PlayBgMusic(PlayBgMusicReq) returns (PlayBgMusicRes);
+
+    //拉取背景音乐配置
+    rpc GetPlayBgMusicConfig(GetPlayBgMusicConfigReq) returns (GetPlayBgMusicConfigRes);
+
+    //3.18查询我的家族
+    rpc GetMyFamily(GetMyFamilyReq) returns (GetMyFamilyRes);
+
+    //3.18批量查询我的家族
+    rpc BatchGetMyFamily(BatchGetMyFamilyReq) returns (BatchGetMyFamilyRes);
+
+    //3.18 查询是否有创建家族的权限(目前h5调用)
+    rpc GetCreateFamilyPermit(GetCreateFamilyPermitReq) returns (GetCreateFamilyPermitRes);
+
+    //3.18设置家族创建权限
+    rpc SetCreateFamilyPermit(SetCreateFamilyPermitReq) returns(SetCreateFamilyPermitRes);
+
+    //3.18一些家族配置
+    rpc GetFamilyConfig(GetFamilyConfigReq) returns (GetFamilyConfigRes);
+
+    //3.18 Party页入口里的家族开播列表(我的家族成员中，在自己房间且在座位上)
+    rpc GetFamilyRoomList(GetFamilyRoomListReq) returns (GetFamilyRoomListRes);
+
+    //3.18 查询我的家族加入审核状态(目前H5调用)
+    rpc GetJoinApplyStatus(GetJoinApplyStatusReq) returns (GetJoinApplyStatusRes);
+
+    //3.18 查询家族的cinfo和当前人员数(目前H5调用)
+    rpc GetFamilyInfoAndMemberCount(GetFamilyInfoAndMemberCountReq) returns (GetFamilyInfoAndMemberCountRes);
+
+    rpc ServerLeave(ServerLeaveReq) returns(ServerLeaveRes);
+
+    rpc FixZombie(FixZombieReq) returns(FixZombieRes);
+
+    //游戏频道使用
+    rpc ChangeChannelOwner(ChangeChannelOwnerReq) returns(ChangeChannelOwnerRes);
+
+}
+
+// 单播广播
+enum Uri {
+    UriNone = 0;
+
+    UriOnlines = 10; // 广播。在线人数变更，会做聚合，不一定实时
+    UriBanned = 11; // 单播。禁言/解禁
+    UriReceiveMsg = 12; // 广播。有消息
+    UriKickOff = 13; // 单播。踢人，被踢者收到
+    UriChannelBanned = 14; // 广播。群被封禁了
+    UriSeat = 15; // 广播。座位信息变更
+    UriLoadPlugin = 16; // 广播。玩法变更
+    UriProbe = 18; // 组播。探测客户端情况
+    UriChangeJoinMode = 19; // 广播。加群方式改变
+    UriEnter = 20; // 广播。进入语音频道
+    UriLeave = 21; // 广播。离开语音频道
+//    UriQuickMatchSuccess = 22; // 组播。匹配成功通知
+
+    UriSitDown = 30; // 上座
+    UriStandUp = 31; // 下座
+    UriSitdownPlz = 32; // 房主邀请上麦,单播给被邀请人
+    UriSitDownPlzAccept = 33; // 接受/拒绝上麦邀请 ,单播给房主
+    UriStandUpPlz = 34; // 被房主抱下麦，单播给被抱人
+    UriLockSeat = 35; // 座位锁定
+    UriSetMic = 36; //设置麦克风
+    UriChangeSeat = 37; // 换座位
+    UriSetBackground = 38; // 设置主题
+    UriNewBackground = 39; //新主题
+    UriUnlockSeat = 40;  //座位解锁
+    UriOpenVoiceChat = 41; // 开启语音通话
+    UriChannelLock = 42;  //锁频道通知
+    UriReady = 43;       // 准备/取消准备
+    UriStartGame = 44;       // 游戏开始通知
+    UriGameFinish = 45;       // 游戏结束通知
+    UriChannelManager = 46;       // 频道管理的uri
+    UriExecuteEnter = 47;       // 客户端收到之后，执行Enter请求
+    UriRadioStationNotify = 48;  //小电台进入
+    UriVideoStatusNotify = 49;   //视频开关播通知
+    UriKTVStatusNotify = 50;     //视频秀场KTV通知
+    UriChannelUpgradeNotify = 51;     //频道改版。升级到新框架频道通知
+    UriSwitchLbsNotify = 52;          //lbs开关状态变更
+    UriSetPartyBackgroundNotify = 53; //设置party背景
+    UriBgMusicNotify = 54; //播放或结束 背景音乐
+    UriUpdateBgMusicSettingNotify = 55; //更改背景音乐设置
+    UriGlobalLeaveNotify = 56; // 收到广播的用户判断是否在跨大区的频道，是则离开该频道
+}
+
+
+message Notify {
+    common.Header header = 1;
+    int32 uri = 2; // 做协议兼容，不做处理
+    repeated int32 uris = 3;
+    string cid = 4; // 其实header有，这里加一个
+
+    NotifyOnlines onlines = 10;
+    NotifyBanned banned = 11;
+    NotifyReceiveMsg receive_msg = 12;
+    NotifyKickOff kick_off = 13;
+    NotifyChannelBanned group_banned = 14;
+    NotifySeat seat = 15;
+    NotifyLoadPlugin load_plugin = 16;
+    NotifyProbe probe = 18; // 客户端收到这个Notify之后，如果还在当前频道内，需要发送一个Probe请求
+    NotifyChangeJoinMode change_join_mode = 19;
+    NotifyEnter enter = 20; //进入语音频道, 广播
+    NotifyLeave leave = 21; //离开语音频道, 广播
+    NotifySitDown sit_down = 30; // 上座
+    NotifyStandUp stand_up = 31; // 下座
+    NotifySitdownPlz sitdown_plz = 32; // 房主邀请上麦,单播给被邀请人
+    NotifySitDownPlzAccept sit_down_plz_accept = 33; // 接受/拒绝上麦邀请 ,单播给房主
+    NotifyStandUpPlz stand_up_plz = 34; // 被房主抱下麦，单播给被抱人
+    NotifyLockSeat lock_seat = 35; // 座位锁定
+    NotifySetMic set_mic = 36; //设置麦克风
+    NotifyChangeSeat change_seat = 37; // 换座位
+    NotifySetBackground set_background = 38; // 设置主题
+    NotifyNewBackground new_background = 39; //新主题
+    NotifyUnlockSeat unlock_seat = 40; // 座位解锁
+    NotifyOpenVoiceChat open_voice_chat = 41; // 开启语音通话
+    NotifyChannelLock channel_lock = 42; // 锁频道通知
+    NotifyReady ready = 43; // 准备/取消准备
+    NotifyStartGame start_game= 44; // 开始游戏
+    NotifyGameFinish game_finish= 45; // 结束游戏
+    NotifyExecuteEnter execute_enter = 47; // 客户端收到之后，执行Enter请求
+    NotifyRadioStation enter_radio  = 48; //进入小电台
+    NotifyVideoStatus video_status = 49; //开/关视频通知
+    NotifyKTVStatus ktv_status = 50; //ktv 开/关通知
+    NotifyChannelUpgrade channel_upgrade = 51;//频道改版。升级到新框架频道通知
+    NotifySwitchLbs switch_lbs = 52;          //lbs开关状态变更
+    NotifySetPartyBackground set_party_background = 53; // 设置party背景
+    NotifyBgMusic bg_music = 54; // 播放或结束 背景音乐
+    NotifyUpdateBgMusicSetting update_music_setting = 55; // 更改背景音乐设置
+    NotifyGlobalLeave global_leave = 56; // 收到广播的用户判断是否在跨大区的频道，是则离开该频道
+}
+message NotifyGlobalLeave {
+    int64 uid = 1; //操作人uid
+    biz.PluginInfo plugin_info = 2; //切到的玩法
+}
+message NotifyBgMusic {
+    int64 oper_uid = 1; // 操作人uid
+    bool play = 2; //true为播放，false为结束
+    bool manual = 3; //true表示主动操作
+}
+message NotifyUpdateBgMusicSetting{
+    bool enable_master = 1;// true允许管理员设置
+}
+
+message NotifySwitchLbs {
+    int64  oper      = 1; // 操作人uid
+    bool   status    = 2; // true:打开lbs开关
+    double longitude = 3; // status==true时有效
+    double latitude  = 4; // status==true时有效
+}
+
+message NotifyChannelUpgrade {
+    int32 version = 1; //升级到的版本
+    string top_cid = 2; //顶级频道id
+}
+//小电台通知
+message NotifyRadioStation {
+    int64 from_uid = 1;//通过小电台进来的uid
+}
+
+message NotifyOnlines {
+    int32 onlines = 1; // 在线人数
+}
+
+message NotifyBanned {
+    int64 oper = 1; // 操作人
+    bool banned = 2; // true禁言，false解禁
+    int64 time = 3; //解禁时间
+}
+
+message NotifyReceiveMsg {
+    bool all = 1; // 正常情况下只有游客和未订阅成员才通过广播收消息
+    // all为true的时候表示离线系统有问题，订阅者也要处理这个广播
+    string msgid = 2;
+    biz.IMMsgItem msg = 3;
+}
+
+message NotifyKickOff {
+    int64 frozen_time = 1; // 冻结时长，单位秒，相对时间
+    string op_nick = 2; // 踢人昵称
+    string nick = 3; // 被踢昵称
+    int64 op_uid = 4; // 踢人uid
+    int64 uid = 5; // 被踢uid
+}
+
+message NotifyChannelBanned {
+    int64 reason = 1; // see EBanReason
+}
+
+message NotifySeat {
+    repeated biz.SeatUser seat_users = 1; // 每次变更都带全量座位信息
+}
+
+message NotifyLoadPlugin {
+    biz.PluginInfo info = 1;
+}
+
+message NotifySitdownPlz {
+    string plz_id = 1;
+}
+
+message NotifyProbe {
+    string data = 1;
+}
+
+message NotifyChangeJoinMode {
+    int32 mode = 1; // see biz.ChannelJoinMode
+}
+
+message NotifyEnter {
+    int64 uid = 1;
+    int32 seat = 2; //自动上座座位
+    EnterUserInfo user_info = 3;// 用来广播，减少客户端请求
+}
+message NotifyLeave {
+    int64 uid = 1;
+}
+message NotifySitDown {
+    int64 uid = 1;
+    int32 seat = 2; // since 1
+}
+
+message NotifyStandUp {
+    int64 uid = 1;
+    int32 seat = 2;// since 1
+}
+message NotifySitDownPlzAccept {
+    int64 uid = 1;
+    bool  accept = 2;
+    int32 seat = 3;     // since 1,如果accept为true，seat<0表示没有空位，上麦失败
+}
+message NotifyStandUpPlz {
+}
+message NotifyLockSeat {
+    int32 seat = 1;// since 1
+    int64 uid = 2; //非0表示下座uid
+}
+message NotifyUnlockSeat {
+    int32 seat = 1; //since 1
+}
+message NotifySetMic {
+    int32 seat = 1;// since 1
+    int64 uid = 2;            // uid+seat结合，防止客户端收到notify之前状态变更了
+    int32 mic_ban = 3;//1 禁麦，2取消禁麦
+    int32 mic_close = 4;//1 自己关麦，2取消自己关麦
+}
+message NotifyChangeSeat {
+    int64 uid = 1;
+    int32 old_seat = 2; // 旧座位  since 1
+    int32 new_seat = 3; // 新座位  since 1
+}
+
+message NotifySetBackground {
+    Background background = 1;
+}
+message NotifyNewBackground {
+    Background background = 1;//新增的主题
+}
+message NotifySetPartyBackground {
+    Background background = 1;
+}
+message NotifyOpenVoiceChat{
+    int64 uid = 1; //操作者uid
+}
+
+message NotifyChannelLock {
+    bool lock = 1; // true表示是加锁，否则表示是解锁
+    string pwd_token = 2; // 锁定频道的时候返回。用于非管理员用户在锁定后断网重连时join请求带上
+}
+message NotifyReady {
+    int32 seat = 1;
+    int64 uid = 2;
+    bool  ready = 3;
+}
+
+message NotifyStartGame {
+    biz.PluginInfo plugin_info = 1; // 当前的玩法信息
+    string url = 2;             // 进入游戏的URL
+    string join_game_ctx = 3;   // 进入游戏需要的额外信息
+    int64  uid = 4;             // 座位上的用户，会逐个单播，uid填其uid，观众会广播，uid填0。也即座位上的用户不处理uid为0的广播
+}
+
+message NotifyGameFinish {
+}
+
+message NotifyExecuteEnter{
+}
+
+message GetFixedCidsReq{
+    int64 tab_id = 1;
+}
+
+message FixedCids {
+    repeated string cids = 1;
+}
+
+message EnterInfo {
+    enum OpenGameType {
+        DO_NOT_USE = 0;
+        ROOM_GAME  = 1; // 频道内游戏：如百家乐
+        ROOM_ACT   = 2; // 频道内活动：如钻石夺宝、赛马
+    }
+    OpenGameType open_game_type = 1;
+    string open_game_id = 2;
+}
+
+message PosLabel {
+    map<int32, int32> pos_label = 1;
+}
+
+message GetFixedCidsRes {
+    map<int32, FixedCids> fixed_cids = 1;
+    map<string, PosLabel> cid_label = 2;    //key是频道Id，value是频道label， 详见：https://git.yy.com/name/proto-rrec/blob/master/rrec.proto#L86
+}
+
+message FixedPosCh{
+    string cid = 1;          //频道id
+    PosTime posTime = 2;    //见PosTime
+    int64 tabId = 3;        //tabId 见后台配置http://ibigboss.yy.com/hagoconfigcenter/homePageTab
+    int32 label = 4;        // 详见：https://git.yy.com/name/proto-rrec/blob/master/rrec.proto#L86，年度置顶活动传 6
+}
+
+message AddFixedPosChReq{
+    repeated FixedPosCh fixedPosChs = 1;
+}
+
+message PosTime {
+    int32 pos = 1;          //置顶位置
+    int64 startTime = 2;    //置顶起始时间 10位时间戳
+    int64 endTime = 3;      //置顶结束时间 10位时间戳
+}
+
+message AddFixedPosChRes{
+    common.Result result = 1;
+}
+
+//GetVedioShowConfigReq 获取视频Show的配置信息
+message GetVideoShowConfigReq {}
+
+message GetVideoShowConfigRes {
+    common.Result result = 1;
+    bool video_sing_button = 2; //是否展现"视频唱歌"开关
+    bool video_permission = 3;  //是否有开启视频的资质，当没有视频资质的时候，点击"视频唱歌"按钮，会弹出h5提示用户
+    bool video_sing_mode = 4;   //是否开启视频唱歌模式，当开启视频唱歌模式，默认会打开点歌面板
+    bool lyric_panel_close_button = 5; //是否展示歌词面板关闭按钮
+    bool lyric_panel_min_button = 6;  //是否展示歌词面板最小化按钮
+    bool enable_ktv = 7; // 大区打通视频侧：控制主播工具面板的KTV唱歌功能是否可用
+}
+
+//ReportVideoStatusReq 上报视频开/关播状态
+message ReportVideoStatusReq {
+    string cid = 1; //开播的房间ID
+    bool is_open = 2; //true表示视频开始，false表示视频关闭
+    enum Reason { // 上报原因
+        VIDEO_STOP  = 0;             // 视频关闭
+        VIDEO_START = 1;             // 视频开始
+        TRANSCODE_MODE_CHANGE = 2;   // 码率切换
+    }
+    Reason reason = 4;                //上报原因
+    TranscodeList transcode_list = 5; //上报当前频道内的视频流信息
+}
+
+message ReportVideoStatusRes {
+    common.Result result = 1;
+}
+
+//ReportKTVStatusReq 上报ktv开关状态
+message ReportKTVStatusReq {
+    string cid = 1; //开播的房间ID
+    bool is_open = 2; //true表示视频开始，false表示视频关闭
+}
+
+message ReportKTVStatusRes {
+    common.Result result = 1;
+}
+
+
+//NotifyVideoStatus 视频开启的广播
+message NotifyVideoStatus {
+    bool is_open = 1;  //视频是否已经打开
+    TranscodeList transcode_list = 5; //当前频道内的视频流信息
+}
+
+//NotifyKTVStatus KTV 开启的广播
+message NotifyKTVStatus {
+    bool is_open = 1; //
+}
+
+//RadioStatus 这个JSON对象会放入plugin的ext字段内
+message RadioStatus {
+    bool is_video_open = 1;  //视频打开与否
+    bool is_ktv_open = 2;    //ktv打开与否
+}

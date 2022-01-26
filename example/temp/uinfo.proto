@@ -1,0 +1,176 @@
+syntax="proto3";
+
+// sname net.name.uinfo.api.uinfo
+
+package net.name.uinfo.api.uinfo;
+
+option go_package="pbuinfo";
+option objc_class_prefix="Uinfo";
+
+// import "git.yy.com/name/proto-common/common.proto";
+// import "git.yy.com/name/proto-biz/biz.proto";
+
+service Uinfo {
+	// 根据版本获取个人资料
+	rpc GetUinfoByVer(GetUinfoByVerReq) returns (GetUinfoByVerRes) {}
+	// 更新个人资料
+	rpc UpdateUinfo(UpdateUinfoReq) returns (UpdateUinfoRes) {}
+	// 更新头像
+	rpc UpdateAvatar(UpdateAvatarReq) returns (UpdateAvatarRes) {}
+
+	/////////////////////////////////////////////////////////////////
+	// 非客户端接口
+
+	// 头像审核结果
+	rpc MQReportAvatar(MQReportAvatarReq) returns (MQReportAvatarRes) {}
+
+	// 绑定和解绑靓号
+	rpc BindVipAccount(BindVipAccountReq) returns (BindVipAccountRes) {}
+	rpc BatchBindVipAccount(BatchBindVipAccountReq) returns (BatchBindVipAccountRes) {}
+
+    // 设置头像限制
+    rpc SetAvatarLimit(SetAvatarLimitReq) returns (SetAvatarLimitRes) {}
+    // 设置文字限制
+    rpc SetWordLimit(SetWordLimitReq) returns (SetWordLimitRes) {}
+    // 解除头像限制
+    rpc FreeAvatarLimit(FreeAvatarLimitReq) returns (FreeAvatarLimitRes) {}
+    // 解除文字限制
+    rpc FreeWordLimit(FreeWordLimitReq) returns (FreeWordLimitRes) {}
+}
+
+enum ReasonType {
+  kReasonTypeUnknown = 0;
+  kReasonTypeNick    = 1; // 昵称
+  kReasonTypeSign    = 2; // 签名
+  kReasonTypeHome    = 3; // 家乡
+  kReasonTypeJob     = 4; // 职业
+}
+
+enum ERet {
+	kRetSuccess          = 0;
+	kRetErrParameter     = 1; // 参数错误
+	kRetErrSystem        = 999; //系统错误
+	kRetUserInfoInvalid  = 361; // 更新个人资料违规
+	KRetUinfoWordLimit   = 362; // 文字类内容限制修改
+	KRetUinfoAvatarLimit = 363; // 头像限制修改
+	KRetBindVipDuplicate = 364; // 重复绑定相同靓号
+	KRetUnBindVip        = 365; // 未绑定靓号
+}
+
+// 性别
+enum ESexType {
+	ESTFemale  = 0; // 女性
+	ESTMale    = 1; // 男性
+	ESTUnknown = 3; // 未知性别
+}
+
+message UIDVer {
+	int64 uid = 1;
+	int64 ver = 2; // 版本号, 0:一定返回, ver<=服务器存储ver:不返回该uid数据
+}
+
+message ReasonInfo {
+  int64 invalid_type = 1; // 参考 ReasonType
+}
+
+// 获取用户资料
+message GetUinfoByVerReq {
+	repeated UIDVer uids         = 1;
+	repeated string fields       = 2; // (废弃)过滤需要common字段(uid,vid字段必定返回), 为空默认返回全部common字段, 例如: fields=["avatar", "nick", ...]
+	repeated string extra_fields = 3; // (废弃)过滤需要extra字段, 为空默认不返回extra字段, 例如: extra_fields=["first_login_time", ...]
+	biz.UserInfo selector        = 4; // 填了selector, fields和extra_fields不用填
+}
+message GetUinfoByVerRes {
+	common.Result result    = 1;
+	repeated biz.UserInfo infos = 2;
+}
+
+// 更新用户资料
+message UpdateUinfoReq {
+	biz.UserInfo info = 1;
+}
+message UpdateUinfoRes {
+	common.Result result = 1;
+	biz.UserInfo info    = 2;
+	ReasonInfo reason    = 3;
+}
+
+// 更新用户头像
+message UpdateAvatarReq {
+	string url = 1;
+}
+message UpdateAvatarRes {
+	common.Result result = 1;
+	string url           = 2;
+}
+
+// 头像审核结果
+message MQReportAvatarReq {
+	int64 uid     = 1;
+	string url    = 2; // 违规头像
+	string reason = 3; // 违规原因
+	string status = 4; // 违规级别("1":不违规,"2":违规,"3":待定,"4":待定(性别改变))
+}
+message MQReportAvatarRes {
+	common.Result result = 1;
+}
+
+// 绑定和解绑靓号
+message BindVipAccountReq {
+	int64 uid = 1;
+	int64 vid = 2; // 绑定的靓号
+	int64 vlv = 3; // 绑定的等级
+}
+message BindVipAccountRes {
+	common.Result result = 1;
+	int64 recycle_vid    = 2; // 回收靓号(绑定的vid和当前不一致返回，否则为0)
+	int64 recycle_vlv    = 3; // 回收靓号的等级
+}
+
+message VipAccountInfo {
+    int64   uid = 1;
+    int64   vid = 2; // 绑定的靓号
+    int64   vlv = 3; // 绑定的等级
+    string  msg = 4; // 绑定失败时返回的信息
+}
+
+message BatchBindVipAccountReq {
+    	repeated VipAccountInfo accountes = 1;
+}
+
+message BatchBindVipAccountRes {
+    	common.Result result                      = 1;
+    	repeated VipAccountInfo fail_accountes    = 2;//失败用户
+    	repeated VipAccountInfo success_accountes = 3;//成功用户
+}
+
+message SetAvatarLimitReq {
+	repeated int64 uids = 1;
+    int64 ttl           = 2; // 单位 秒
+}
+message SetAvatarLimitRes {
+	common.Result result = 1;
+}
+
+message SetWordLimitReq {
+	repeated int64 uids = 1;
+    int64 ttl           = 2; // 单位 秒
+}
+message SetWordLimitRes {
+	common.Result result = 1;
+}
+
+message FreeAvatarLimitReq {
+	repeated int64 uids = 1;
+}
+message FreeAvatarLimitRes {
+	common.Result result = 1;
+}
+
+message FreeWordLimitReq {
+	repeated int64 uids = 1;
+}
+message FreeWordLimitRes {
+	common.Result result = 1;
+}
+

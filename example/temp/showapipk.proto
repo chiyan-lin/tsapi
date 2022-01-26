@@ -1,0 +1,278 @@
+syntax = "proto3";
+
+// 服务注册名
+// 客户端会通过这个字段获取sname
+// 主命名空间：net.name
+// 子命名空间：ymicro (下面的服务类型对业务命名空间为保留字段)
+// 服务类型：srv/api/web/...
+// 服务名称：demo
+package net.name.show.api.pk;
+
+// go的包名，引用时因为有git的项目路径作为命名空间，这里用短和清晰的名词
+option go_package = "pk";
+option objc_class_prefix = "ShowPk";  // 苹果要求至少3个字符
+
+// import "git.yy.com/name/proto-common/common.proto";
+// import "git.yy.com/name/proto-biz/biz.proto";
+
+
+// 以下根据业务实际情况编写
+// 表示一个pk服务 跨房pk相关
+service Pk {
+	// 邀请pk
+	rpc InvitePk(InvitePkReq) returns(InvitePkRes);
+	// 接受pk
+	rpc AcceptPk(AcceptPkReq) returns(AcceptPkRes);
+	// 拒绝pk
+	rpc RejectPk(RejectPkReq) returns(RejectPkRes);
+	// 退出pk
+	rpc ExitPk(ExitPkReq) returns(ExitPkRes);
+
+	// 获取pk界面列表信息
+	rpc GetPkConfig(GetPkConfigReq) returns(GetPkConfigRes);
+
+	// 获取频道pk信息
+	rpc GetPkInfo(GetPkInfoReq) returns(GetPkInfoRes);
+	// 查询贡献值排行榜单
+	rpc GetContributionRank(GetContributionRankReq) returns (GetContributionRankRes);
+
+	// 上报连麦状态
+	rpc ReportConnectStatus(ReportConnectStatusReq) returns (ReportConnectStatusRes);
+}
+
+// 基本错误码，错误码>=2000，客户端均可重试
+enum RetCode {
+	ERR_Ok = 0;
+	// 1xxx 基础错误码，如参数错误等
+	ERR_TOKEN_PARAM = 1001; 	// Token参数缺少报错
+	ERR_PARAM = 1002; 		// 请求参数判断出错
+
+	// 2xxx 数据库相关错误码
+	ERR_MYSQL_EXEC = 2001; 	// mysql操作失败
+	ERR_REDIS = 2002; 		// redis操作失败
+	// 3xxx 服务错误码
+	ERR_USER_INFO = 3001; 		// 个人信息中心接口调用失败
+
+	ERR_USER_PK_INVITING = 4001; 	// 用户正在发送邀请中
+	ERR_USER_PK_INVITED = 4002; 	// 用户被邀请中
+	ERR_USER_PK_PKING = 4003; 		// 用户正在pk中
+	ERR_USER_NOT_IN_PK_CHANNEL = 4004; // 不在指定频道中
+	ERR_INVITE_FREQ_LIMIT = 4005; // 邀请太频繁
+	ERR_USER_NOT_WILLING_TO_PK = 4006; //对方不想pk
+	ERR_INVITE_INVALID = 4007; // 邀请id已失效/不正确
+	ERR_SENSITIVE_WORD = 4008; //含有敏感词
+}
+
+enum Uri {
+	UriNone = 0;
+	UriPKInvite = 1;
+	UriPKChange = 2;        	// Pk阶段变化信息通知
+	UriPKActivityEntry  = 3;    // Pk活动入口状态信息通知
+}
+
+// Pk通知
+message PkNotify {
+	common.Header header = 1;
+	int32 uri = 2; 					// 参考URi
+	PkInviteNotify pk_invite = 10;   // Pk邀请
+	PkChangeNotify pk_change = 11;   // Pk阶段变化信息通知
+	PKActivityEntryNotify pk_activity_entry = 12;   // Pk活动入口状态信息通知
+}
+
+// PKInviteNotify PK 邀请相关广播消息结构
+message PkInviteNotify {
+	int64 from_uid = 1;
+	string from_cid = 2;
+	int64 to_uid = 3;
+	string to_cid = 4;
+	int32 operation = 5; // 1 邀请  2 接受 3 拒绝
+	string pk_id = 6;
+	string punish_text = 7; // 惩罚文案
+	int64 timestamp = 8; // 邀请/拒绝/接受 时间戳(秒)
+	int64 ttl = 9; // 邀请时效（秒)
+}
+
+// pk状态数值改变通知
+message PkChangeNotify {
+	PkPhaseInfo pk_phase_info = 1;  // 当前pk信息
+	ConnectInfo connect_info = 2; 	// 当前的连麦信息
+}
+
+// Pk活动入口状态信息通知
+message PKActivityEntryNotify {
+	biz.ActivityEntry activity_entry = 1; 	// Pk活动入口状态信息通知
+}
+
+
+// InvitePKReq 发起跨房pk邀请
+message InvitePkReq {
+	int64 to_uid = 1;  // 邀请的用户
+	string from_cid = 2; // 从哪个房间发起pk
+	string punish_text = 3; // 惩罚内容
+}
+
+// InvitePKRes 发起夸房pk响应
+message InvitePkRes {
+	common.Result result = 1;
+	int64 ttl = 10; // 邀请时效(单位秒)
+	int64 timestamp = 11; // 时间戳(单位秒)
+}
+
+// AcceptPKReq 接受pk
+message AcceptPkReq {
+	string pk_id = 1; //
+}
+
+// AcceptPKRes 接受pk响应
+message AcceptPkRes {
+	common.Result result = 1;
+}
+
+// RejectPkReq 拒绝pk
+message RejectPkReq {
+	string pk_id = 1;
+}
+
+// RejectPKRes 拒绝pk响应
+message RejectPkRes {
+	common.Result result = 1;
+}
+
+
+// ExitPKReq 退出pk
+message ExitPkReq {
+	string pk_id = 1;
+}
+
+// ExitPKRes 退出pk
+message ExitPkRes {
+	common.Result result = 1;
+}
+
+// GetPKConfigReq 获取pk界面的列表信息
+message GetPkConfigReq {
+}
+
+// GetPKConfigRes 获取pk界面的列表信息
+message GetPkConfigRes {
+	common.Result result = 1;
+	int64 duration = 10; // pk设置时长(秒)
+	repeated string punish_text = 11; // 惩罚内容列表, 客户端从中选一个
+	repeated PkUserInfo users = 12;
+}
+
+// PKUserInfo pk邀请界面列表用户信息
+message PkUserInfo {
+	int64 uid = 1;
+	int32 pk_status = 2; //pk 状态，查看PKStatus
+}
+
+// UserPkStatus 用户PK状态
+enum UserPkStatus {
+	USER_PKSTATUS_NONE = 0;
+	USER_PKSTATUS_INVITING = 1;
+	USER_PKSTATUS_INVITED = 2;
+	USER_PKSTATUS_PKING = 3; 		// pk中
+}
+
+// pk阶段信息
+enum EPhase {
+	EPHASE_PK_NONE = 0; 			//  没有Pk，pk未开始,收到这个状态广播通知时，应该去掉所有pk的元素
+	EPHASE_PK_READY = 1;			// 	准备pk
+	EPHASE_PKING = 2;				// 	pk进行中
+	EPHASE_PK_SHOWRESULT  = 3;		// 	pk结果展示
+	EPHASE_PK_PUNISH = 4;			// 	pk惩罚
+}
+
+// 获取频道连麦和阶段信息
+message GetPkInfoReq {
+}
+
+// pk结果
+enum EPkResult {
+	EPK_RESULT_NONE = 0;
+	EPK_RESULT_WIN = 1; 		// 赢局
+	EPK_RESULT_LOSE = 2; 		// 输局
+	EPK_RESULT_TIE = 3; 		// 平局
+}
+
+// pk的信息
+message PkInfo {
+	int64 uid = 1;  					    		// 房主uid
+	string room_id = 2;								// 房间id
+	int32 charm = 3;  					    		// 本房间房主的魅力值
+	repeated int64 contribution_uids = 4;   		// 本房间房主贡献值榜单前三名,uid
+	repeated string contribution_avatars = 5;   	// 本房间房主贡献值榜单前三名,头像
+	int32 pk_result = 6;							// 结果展示环节时需要,参考PkResult 1:赢局  2：输局 3：平局
+}
+
+// pk阶段的信息
+message PkPhaseInfo {
+	string pk_id = 1;			// pkid
+	int32 phase = 2;			// pk阶段信息，参考 EPhase
+	int64 count_down = 3;		// 倒计时（秒）
+	PkInfo  pk_info = 5;		// 本房间pk信息
+	PkInfo  other_pk_info = 6;	// 对方房间pk信息
+	string punish = 7;			// pk惩罚惩罚文案
+	int64 start_timestamp = 8;	// 本阶段的开始时间戳(秒)
+}
+
+enum ConnectStatus {
+	CONNECT_STATUS_NONE = 0; 		// 没有连麦
+	CONNECT_STATUS_CONNECTING = 1; 	// 连麦中
+	CONNECT_STATUS_WAITING = 2; // 等待连接
+}
+
+// 连麦信息.
+message ConnectInfo {
+	int32 status = 1; 				// pk状态， see ConnectStatus
+	int64 start_time = 2; 			// 邀请pk成功时间戳（秒）
+	int64 other_uid = 3;			// 连麦对方的uid
+	string other_cid = 4;			// 连麦对方的cid
+}
+
+//  获取频道连麦和阶段信息
+message GetPkInfoRes {
+	common.Result result = 1;
+	ConnectInfo connect_info = 11; 			// 连麦信息
+	PkPhaseInfo pk_phase_info = 12; 		// pk阶段的信息
+	biz.ActivityEntry activity_entry = 13; 	// Pk活动入口状态信息
+}
+
+// 榜单奖励项
+message RankItem {
+	int64 uid = 1;          // 用户uid
+	string nick = 2;        // 昵称
+	string avatar = 3;      // 用户头像
+	int32 value = 4;        // 数值
+	int32 rank = 5;         // 排名
+}
+
+// 查询贡献值排行榜单
+message GetContributionRankReq {
+	int64 uid = 1;  			// 房主uid
+	string pk_id = 2;			// pkid
+	int32 type = 3;             // 查询的类型 0:本场 1:本周
+	int32 offset = 4;           // 查询的偏移量
+	int32 limit = 5;            // 查询的数量
+}
+
+// 查询贡献值排行榜单
+message GetContributionRankRes {
+	common.Result result = 1;
+	repeated RankItem contribution_ranks = 11;    // 贡献值排行
+}
+
+// ReportConnectStatusReq 客户端上报连麦状态
+message ReportConnectStatusReq {
+	string cid = 1;
+	int64 uid = 2;
+	string other_cid = 3; // 连麦对方cid
+	int64 other_uid = 4; // 连麦对方uid
+	int32 status = 5; // see ConnectStatus
+}
+
+// ReportConnectStatusRes
+message ReportConnectStatusRes {
+	common.Result result = 1;
+}

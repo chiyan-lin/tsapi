@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+// 服务注册名
+// 客户端会通过这个字段获取sname
+// 主命名空间：net.name
+// 子命名空间：ymicro (下面的服务类型对业务命名空间为保留字段)
+// 服务类型：srv/api/web/...
+// 服务名称：demo
+package net.name.base.tag;
+
+// go的包名，引用时因为有git的项目路径作为命名空间，这里用短和清晰的名词
+option go_package = "basetag";
+option objc_class_prefix = "BaseTag";
+
+// 以下根据业务实际情况编写
+
+enum InfoStatus {
+    INFO_STATUS_NONE = 0;
+    INFO_STATUS_NORMAL = 1;
+    INFO_STATUS_OFFLINE = 2;
+
+    INFO_STATUS_UNVERIFY = 11;     //未审核
+    INFO_STATUS_VERIFY_PASSED = 12; //审核通过
+    INFO_STATUS_VERIFY_FAILED = 13; //审核失败
+    INFO_STATUS_DELETED = 100;
+}
+
+enum TagType {
+	TAG_TYPE_NONE = 0;
+	TAG_TYPE_OFFICIAL = 1;  //官方
+	TAG_TYPE_UGC = 2;       //UGC
+	TAG_TYPE_KTV = 3;       //KTV
+	TAG_TYPE_NEWCOMER = 4;   //新人报道
+}
+
+// Tag
+message Tag {
+	string tid = 1;     // tag id
+    string topic_id = 2;// topic id
+	string text = 10;   // tag的文本
+	string image = 11;  // 图片的URL
+	string desc = 12;	// 描述
+	int32  status = 20; // see InfoStatus
+	bool default = 21;//默认tag,普通用户在发帖时，仅能使用默认tag
+    bool operationalTag = 22; //是否运营贴
+
+	// repeated string flags = 40; // 官方、热门等标签 TODO
+	//活动相关的信息
+	string aid = 23;       // 活动id
+	string icon = 24;      //tag小的图标，一般活动会配置，在tag描述文字前面显示一个小图标。
+	string act_img = 25;  //活动的图标，如果这个tag属于某个活动，会有活动的图标
+	string jump_url = 26;  //点击act_icon跳转的url
+	int32  use_count = 27; //使用次数
+
+	int32 type = 28;   // 类型，见TagType
+	int32 pass = 29;   // 0:未设置，1: pass，2: not pass
+}
+
+// 话题
+message Topic {
+	string tid = 1;     // 话题的ID
+	string text = 10;   // 话题的文本
+	string image = 11;  // 图片的URL
+	int32  status = 12; // see InfoStatus
+	// repeated string flags = 5; // 官方、热门等标签 TODO
+}

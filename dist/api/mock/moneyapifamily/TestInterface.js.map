@@ -1,0 +1,1 @@
+{"version":3,"file":"TestInterface.js","sourceRoot":"","sources":["../../../../src/api/mock/moneyapifamily/TestInterface.ts"],"names":[],"mappings":";;AACA,mBAAwB,GAAqB;IAC3C,OAAO;QACL,MAAM,EAAE,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,EAAE,QAAQ,EAAE,KAAK,EAAE,QAAQ,EAAE;QAChE,QAAQ,EAAE,QAAQ;QAClB,UAAU,EAAE,EAAE;QACd,YAAY,EAAE,QAAQ;KACvB,CAAC;AACJ,CAAC;AAPD,4BAOC"}

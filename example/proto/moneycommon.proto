@@ -1,0 +1,62 @@
+syntax="proto3";
+
+package moneycom;
+
+// import "git.yy.com/name/protoc-gen-yhttp/webapi/webapi.proto";
+
+option go_package="pbmoneycom";
+option java_package="moneycom.yy.hiyo.proto";
+option objc_class_prefix="MoneyCom";
+
+// 奖品类型
+enum EPrizeType {
+    EPrizeNone = 0;
+    EPrizeHeadIcon = 1;
+    EPrizeMedal = 2;
+    EPrizeInShow = 3;
+    EPrizePrivilegePack = 4;
+
+    EPrizeGift = 5;
+    EPrizeLuckyCard = 6;
+    EPrizeDiamond = 7;
+    EPrizeHagoGold = 8;
+
+    EPrizeRoomBgPic = 9;
+    EPrizeBigEmoji = 10;
+    EPrizeCoupon = 11;
+    EPrizeChatBubble = 12;
+    EPrizeMask = 13;
+    EPrizeHammer = 14;
+  }
+
+  // 奖品信息
+message PrizeInfo {
+    string object_id = 1;
+
+    EPrizeType prize_type = 10;
+    int32 prize_id = 11;
+    int32 prize_diamonds = 12;
+    int32 prize_cnt = 13;
+    string prize_name = 14;
+    string icon_url = 15;
+
+    int64 ttl = 20;
+    float ttl_amount = 21;
+    int64 create_time = 22;
+    string extend = 23;
+    map<string, string> map_extend = 24;
+  }
+
+// 用户信息
+message User {
+  int64 uid = 1;
+  string nick = 2;
+  string avatar = 3;
+}
+
+// 排行榜通用奖品
+message RankPrizeInfo {
+    int32 from = 1;
+    int32 to = 2;
+    repeated PrizeInfo prizes = 3;
+}

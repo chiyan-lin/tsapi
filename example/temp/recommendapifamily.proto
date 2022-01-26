@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+// 服务注册名
+// 客户端会通过这个字段获取sname
+// 主命名空间：net.name
+// 子命名空间：ymicro (下面的服务类型对业务命名空间为保留字段)
+// 服务类型：srv/api/web/...
+// 服务名称：demo
+package net.name.recommend.api.family;
+
+// go的包名，引用时因为有git的项目路径作为命名空间，这里用短和清晰的名词
+option go_package = "pbrecfamily";
+option objc_class_prefix = "Family";
+
+// import "git.yy.com/name/proto-common/common.proto";
+// import "git.yy.com/name/proto-biz/biz.proto";
+
+
+// 以下根据业务实际情况编写
+// 表示一个family服务.
+
+// 家族推荐
+service RecFamily {
+    // 推荐
+    rpc ListRecommendedFamilies(ListRecommendedFamiliesReq) returns (ListRecommendedFamiliesRes) {}
+    // 送礼通知，由 net.name.money.api.family 触发
+    rpc NotifySendGift(NotifySendGiftReq) returns (NotifySendGiftRes) {}
+}
+
+message ListRecommendedFamiliesReq {
+    common.Page page = 1; // 分页控制
+}
+
+message ListRecommendedFamiliesRes {
+    common.Result result = 1;
+    common.Page page = 2; // 分页控制
+    repeated Family family = 3; // 推荐的家族
+}
+
+message Family {
+    string fid = 1; //家族频道id,长号
+    biz.CInfo cinfo = 2; // 家族频道信息
+}
+
+message NotifySendGiftReq {
+    string fid = 1; //家族ID
+    int64 uid  = 2; //送礼人uid
+    int32 diamond_count = 3;  //送礼的等价钻石数量
+    int32 score = 4; //送礼的积分
+}
+
+message NotifySendGiftRes {
+    common.Result result = 1;
+}
